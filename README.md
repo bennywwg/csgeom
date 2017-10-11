@@ -1,6 +1,8 @@
 # csgeom
 Computational Geometry
 
+THIS README IS INCOMPLETE
+
 The end goal of this project is to produce a computational geometry library written in C#.
 
 The high level goals of this project ARE:
