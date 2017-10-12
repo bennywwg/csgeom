@@ -1,5 +1,4 @@
-# csgeom
-## Computational Geometry in C#
+# csgeom: Computational Geometry in C#
 
 ---
 
@@ -17,8 +16,7 @@
   
 ---
 
-### There are a number of problems this library aims to solve, divided into categories;
-### Problems are sorted roughly by their difficulty.
+### There are a number of problems this library aims to solve:
 
 ### In 2D:
 
