@@ -1,3 +1,5 @@
+Project Status: Preliminary Design Stage
+
 # csgeom: Computational Geometry in C#
 
 ---
