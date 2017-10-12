@@ -1,0 +1,9 @@
+#whitelist mode
+/*
+
+#git files
+!.gitignore
+!README.md
+!LICENSE
+
+!/csgeom/csgeom.sln
