@@ -1,9 +1,8 @@
-#whitelist mode
-/*
+csgeom/.vs
+csgeom/packages
 
-#git files
-!.gitignore
-!README.md
-!LICENSE
+csgeom/csgeom/bin
+csgeom/csgeom/obj
 
-!/csgeom/csgeom.sln
+csgeom/csgeom_test/bin
+csgeom/csgeom_test/obj

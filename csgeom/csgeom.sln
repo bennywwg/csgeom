@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26730.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "csgeom", "csgeom\csgeom.csproj", "{93A37BA9-361A-47C7-9929-AAC402B07570}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "csgeom_test", "csgeom_test\csgeom_test.csproj", "{89489022-FC61-4030-9680-904462202F1B}"
+	ProjectSection(ProjectDependencies) = postProject
+		{93A37BA9-361A-47C7-9929-AAC402B07570} = {93A37BA9-361A-47C7-9929-AAC402B07570}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{93A37BA9-361A-47C7-9929-AAC402B07570}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93A37BA9-361A-47C7-9929-AAC402B07570}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93A37BA9-361A-47C7-9929-AAC402B07570}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93A37BA9-361A-47C7-9929-AAC402B07570}.Release|Any CPU.Build.0 = Release|Any CPU
+		{89489022-FC61-4030-9680-904462202F1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89489022-FC61-4030-9680-904462202F1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89489022-FC61-4030-9680-904462202F1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89489022-FC61-4030-9680-904462202F1B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {508258D5-F368-437F-8E54-398F2606476C}
+	EndGlobalSection
+EndGlobal
