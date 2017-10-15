@@ -167,7 +167,7 @@ namespace csgeom {
                 int i1 = (i0 + 1) % Count;
                 if (i0 != skipIndex && i1 != skipIndex) {
                     vert2 res = new vert2();
-                    if (SimplePolygon.SegmentsIntersecting(p0, p1, this[i0], this[i1], ref res)) {
+                    if (Math2.SegmentsIntersecting(p0, p1, this[i0], this[i1], ref res)) {
                         return true;
                     }
                 }
@@ -180,7 +180,7 @@ namespace csgeom {
                 int i1 = (i0 + 1) % Count;
                 if (i0 != thisIndex && i1 != thisIndex) {
                     vert2 res = new vert2();
-                    if (SimplePolygon.SegmentsIntersecting(p0, p1, this[i0], this[i1], ref res)) {
+                    if (Math2.SegmentsIntersecting(p0, p1, this[i0], this[i1], ref res)) {
                         return true;
                     }
                 }
@@ -269,7 +269,7 @@ namespace csgeom {
                         //this is hacky and is only used because of reducing simple with holes to simple
                         if (!vi0.Identical(vj0) && !vi0.Identical(vj1) && !vj0.Identical(vi0) && !vj1.Identical(vi1)) {
                             vert2 res = new vert2();
-                            if (SegmentsIntersecting(verts[iw0], verts[iw1], verts[jw0], verts[jw1], ref res)) {
+                            if (Math2.SegmentsIntersecting(verts[iw0], verts[iw1], verts[jw0], verts[jw1], ref res)) {
                                 return new triangulationResult2 { code = triangulationCode.notSimple };
                             }
                         }
