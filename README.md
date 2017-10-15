@@ -7,12 +7,10 @@ Project Status: Preliminary Design Stage
 ### The end goal of this project is to produce a computational geometry library written in C#.
 
 ### The high level goals of this project ARE:
-  * Provide reasonable approximations for geometry problems
   * Never produce degenerate output from non-degenerate input
   * Be fast enough for real time applications
   
 ### The high level goals of this project are NOT:
-  * Provide numerically accurate results
   * Accept degenerate input
   * Use optimal-time-complexity algorithms
   
