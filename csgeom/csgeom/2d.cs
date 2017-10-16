@@ -118,7 +118,19 @@ namespace csgeom {
 
     public class LineLoop2 {
         List<vert2> data;
-        public double integrateccw() {
+        
+        bool _integralccw_needsUpdate;
+        double _integralccw;
+        public double Integral_y_dx {
+            get {
+                if(_integralccw_needsUpdate) {
+                    _integralccw = Integrate_y_dx();
+                    _integralccw_needsUpdate = false;
+                }
+                return _integralccw;
+            }
+        }
+        double Integrate_y_dx() {
             double sum = 0;
             for (int i = 0; i < Count; i++) {
                 vert2 v0 = this[i];
@@ -127,28 +139,41 @@ namespace csgeom {
             }
             return sum;
         }
+        
+        public windingDir Winding => Integral_y_dx < 0 ? windingDir.ccw : windingDir.cw;
 
-        public vert2 this[int index] => data[index];
+        public double Area => -Integral_y_dx * 0.5;
+
+        public vert2 this[int index] {
+            get {
+                return data[index];
+            }
+            set {
+                data[index] = value;
+                _integralccw_needsUpdate = true;
+            }
+        }
         public void Add(vert2 vert) {
             data.Add(vert);
+            _integralccw_needsUpdate = true;
         }
         public void Insert(vert2 vert, int index) {
             data.Insert(index, vert);
+            _integralccw_needsUpdate = true;
         }
         public void Remove(int index) {
             data.RemoveAt(index);
+            _integralccw_needsUpdate = true;
         }
         public void Clear() {
             data.Clear();
+            _integralccw_needsUpdate = false;
+            _integralccw = 0;
         }
         public int Count => (data == null) ? 0 : data.Count;
-        public windingDir CalculateWinding() {
-            return integrateccw() < 0 ? windingDir.ccw : windingDir.cw;
-        }
-
-
+        
         /// <summary>
-        ///     Connects two loops with an infinitesimal line, adding two duplicated vertices in the process
+        ///     Connects two loops with an infinitesimal bridge, adding two duplicated vertices in the process
         /// </summary>
         public static LineLoop2 PseudoSimpleJoin(LineLoop2 loop0, int index0, LineLoop2 loop1, int index1, bool reverse0, bool reverse1) {
             LineLoop2 res = new LineLoop2();
@@ -198,23 +223,29 @@ namespace csgeom {
             return new LineLoop2(data);
         }
 
-        public LineLoop2() {
-            this.data = new List<vert2>();
+        /// <summary>
+        ///     Doesn't copy the data given to it, so it's faster
+        /// </summary>
+        /// <param name="rawData">The actual List to be used for this LineLoop, not copied</param>
+        public static LineLoop2 Raw(List<vert2> rawData) {
+            return new LineLoop2((rawData != null) ? rawData : new List<vert2>(), true, 0);
         }
-        public LineLoop2(vert2[] data) {
-            if (data != null) this.data = new List<vert2>(data);
-            else this.data = new List<vert2>();
+
+        LineLoop2(List<vert2> data, bool _integralccw_needsUpdate, double _integralccw) {
+            this.data = data;
+            this._integralccw_needsUpdate = _integralccw_needsUpdate;
+            this._integralccw = _integralccw;
         }
-        public LineLoop2(IEnumerable<vert2> data) {
-            if (data != null) this.data = data.ToList();
-            else this.data = new List<vert2>();
+        public LineLoop2() : this(new List<vert2>(), false, 0) {
+        }
+        public LineLoop2(vert2[] data) : this((data != null) ? new List<vert2>(data) : new List<vert2>(), true, 0) {
+        }
+        public LineLoop2(IEnumerable<vert2> data) : this((data != null) ? data.ToList() : new List<vert2>(), true, 0) {
         }
     }
 
     public class SimplePolygon {
-        public LineLoop2 verts = new LineLoop2(null);
-
-        
+        public LineLoop2 verts = new LineLoop2();
 
         /// <summary>
         ///     Checks if the winding of a triangle is counterclockwise
@@ -278,7 +309,7 @@ namespace csgeom {
             }
             
 
-            if (verts.CalculateWinding() != windingDir.ccw) {
+            if (verts.Winding != windingDir.ccw) {
                 return new triangulationResult2 { code = triangulationCode.incorrectWinding };
             } else {
                 if (verts.Count == 3) {
@@ -340,7 +371,7 @@ namespace csgeom {
         public LineLoop2 verts;
         public List<LineLoop2> holes;
 
-        bool mainToHoleIntersectsAnyHole(int mainIndex, int holeIndex, int holeVertexIndex) {
+        static bool mainToHoleIntersectsAnyHole(int mainIndex, int holeIndex, int holeVertexIndex) {
             vert2 mainVert = verts[mainIndex];
             vert2 holeVert = holes[holeIndex][holeVertexIndex];
             for(int i = 0; i < holes.Count; i++) {
@@ -354,7 +385,7 @@ namespace csgeom {
             }
             return false;
         }
-        bool holeToHoleIntersectsAnyHole(int hole0, int hole0Vertex, int hole1, int hole1Vertex) {
+        static bool holeToHoleIntersectsAnyHole(int hole0, int hole0Vertex, int hole1, int hole1Vertex, List<LineLoop2> holes) {
             vert2 p0 = holes[hole0][hole0Vertex];
             vert2 p1 = holes[hole1][hole1Vertex];
             for (int h = 0; h < holes.Count; h++) {
@@ -377,7 +408,7 @@ namespace csgeom {
             return res;
         }
 
-        public SimplePolygon simplify() {
+        public SimplePolygon Simplify() {
             SimplePolygon res = new SimplePolygon();
             res.verts = verts.Clone();
 
@@ -395,9 +426,9 @@ namespace csgeom {
                     vert2 currentHoleVertex = currentHole[currentHoleVertexIndex];
 
                     //first check outer loop vertices
-                    for(int mainVertexIndex = 0; mainVertexIndex < verts.Count; mainVertexIndex++) {
+                    for(int mainVertexIndex = 0; mainVertexIndex < res.verts.Count; mainVertexIndex++) {
                         if(!mainToHoleIntersectsAnyHole(mainVertexIndex, currentHoleIndex, currentHoleVertexIndex) &&
-                           !verts.IntersectsAny(currentHoleVertex, mainVertexIndex)) {
+                           !res.verts.IntersectsAny(currentHoleVertex, mainVertexIndex)) {
                             //we've found a connection between a hole and the outer loop!
                             holeDone = true;
                             foundVertexIndex = currentHoleVertexIndex;
@@ -417,7 +448,7 @@ namespace csgeom {
                             for (int otherHoleVertexIndex = 0; otherHoleVertexIndex < otherHole.Count; otherHoleVertexIndex++) {
                                 vert2 otherHoleVertex = otherHole[otherHoleVertexIndex];
 
-                                if(!verts.IntersectsAny(currentHoleVertex, otherHoleVertex) &&
+                                if(!res.verts.IntersectsAny(currentHoleVertex, otherHoleVertex) &&
                                    !holeToHoleIntersectsAnyHole(currentHoleIndex, currentHoleVertexIndex, otherHoleIndex, otherHoleVertexIndex)) {
                                     holeDone = true;
                                     foundVertexIndex = currentHoleVertexIndex;
@@ -443,6 +474,8 @@ namespace csgeom {
                     res.verts = LineLoop2.PseudoSimpleJoin(res.verts, foundOtherVertexIndex, currentHole, foundVertexIndex, false, false);
                     holes.RemoveAt(currentHoleIndex);
                     currentHoleIndex--;
+                } else {
+                    int z = 0;
                 }
 
                 //currentHoleIndex--;

@@ -48,13 +48,13 @@ namespace csgeom_test {
             b.draw = ba => {
                 for (int i = 0; i < poly.verts.Count; i++) {
                     vec2 pos = poly.verts[i].glm();
-                    ba.text(i.ToString(), pos.x - i.ToString().Length * 0.0125f, pos.y - 0.025f, 0.05f);
+                    //ba.text(i.ToString(), pos.x - i.ToString().Length * 0.0125f, pos.y - 0.025f, 0.05f);
                 }
             };
 
             hudItem clearAllButton = new hudItem("clear selection", 0.3f, 0.1f, b);
             clearAllButton.localX = -1;
-            clearAllButton.localY = -1;
+            clearAllButton.localY = -0.9f;
             clearAllButton.draw = ba => {
                 ba.rect(clearAllButton.x, clearAllButton.y, 0.3f, 0.1f, new vec3(0.3f, 0.3f, 0.3f));
                 ba.text("clear", clearAllButton.x, clearAllButton.y, 0.08f);
@@ -67,7 +67,7 @@ namespace csgeom_test {
 
             hudItem holeButton = new hudItem("next hole", 0.45f, 0.1f, b);
             holeButton.localX = -1;
-            holeButton.localY = -0.9f;
+            holeButton.localY = -0.8f;
             holeButton.draw = ba => {
                 ba.rect(holeButton.x, holeButton.y, holeButton.width, holeButton.height, new vec3(0.3f, 0.3f, 0.3f));
                 ba.text("next hole", holeButton.x, holeButton.y, 0.08f);
@@ -92,13 +92,14 @@ namespace csgeom_test {
                 GL.Enable(EnableCap.DepthTest);
 
                 Stopwatch sw = Stopwatch.StartNew();
-                csgeom.triangulationResult2 res = poly.Clone().simplify().Triangulate();
+                csgeom.triangulationResult2 res = poly.Clone().Simplify().Triangulate();
                 lastTime = (sw.ElapsedTicks / (double)Stopwatch.Frequency);
 
                 Console.Clear();
                 code = res.code;
                 Console.WriteLine("Triangulation took " + ((int)(lastTime * 100000)) / 100.0 + " ms");
                 Console.WriteLine("Status: " + code.ToString());
+                Console.WriteLine("Area: " + poly.verts.Area);
 
                 code = res.code;
 
