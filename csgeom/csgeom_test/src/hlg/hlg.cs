@@ -70,10 +70,12 @@ namespace csgeom_test {
         }
 
 
-        void genericDraw(PolygonMode mode) {
+        void genericDraw(PolygonMode mode, float lineWidth = 1) {
             indices.bind();
             foreach (texture tx in allTextures) tx.bind();
             foreach (vbuffer buf in allBuffers) buf.bindToAttrib();
+
+            GL.LineWidth(lineWidth);
 
             GL.PolygonMode(MaterialFace.FrontAndBack, mode);
             indices.drawElements();
@@ -82,8 +84,8 @@ namespace csgeom_test {
             foreach (texture tx in allTextures) tx.unbind();
             indices.unbind();
         }
-        public void draw(PolygonMode mode = PolygonMode.Fill) {
-            genericDraw(mode);
+        public void draw(PolygonMode mode = PolygonMode.Fill, float lineWidth = 1) {
+            genericDraw(mode, lineWidth);
         }
 
         private model(indexBuffer indices, vbuffer[] buffers, texture[] textures) {
@@ -194,15 +196,19 @@ namespace csgeom_test {
 
         public bool depthEnabled = true;
 
-        public void drawModel(model m, mat4 model, PolygonMode mode = PolygonMode.Fill) {
+        public void drawModel(model m, mat4 model, PolygonMode mode = PolygonMode.Fill, float lineWidth = 1) {
             main.use();
+
+            float time = (float)(DateTime.UtcNow - DateTime.Today).TotalSeconds * 3.0f;
+
+            main.setUniform("time", time);
 
             main.setUniform("hlg_model", model);
             //main.setUniform("hlg_mvp", _projection * _view * model);
             if(m.hasAlbedo) main.setUniform("hlg_albedo", m.albedo.ptr);
 
             if (depthEnabled) enableDepth(); else disableDepth();
-            m.draw(mode);
+            m.draw(mode, lineWidth);
         }
 
         public renderPass(shader main, int width, int height) : this(main, null, width, height) {

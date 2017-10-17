@@ -53,6 +53,19 @@ namespace csgeom {
             return x == other.x && y == other.y;
         }
 
+        public vert2(double x, double y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        public static vert2 zero = new vert2(0, 0);
+        public static vert2 i = new vert2(1, 0);
+        public static vert2 j = new vert2(0, 1);
+        public static vert2 right = i;
+        public static vert2 up = j;
+        public static vert2 left = -i;
+        public static vert2 down = -j;
+
         public static vert2 operator +(vert2 lhs, vert2 rhs) {
             return new vert2 { x = lhs.x + rhs.x, y = lhs.y + rhs.y };
         }
@@ -64,6 +77,9 @@ namespace csgeom {
         }
         public static vert2 operator /(vert2 lhs, double val) {
             return lhs * (1.0 / val);
+        }
+        public static vert2 operator -(vert2 rhs) {
+            return new vert2 { x = -rhs.x, y = -rhs.y };
         }
 
         public override string ToString() {
@@ -170,7 +186,11 @@ namespace csgeom {
             _integralccw_needsUpdate = false;
             _integralccw = 0;
         }
-        public int Count => (data == null) ? 0 : data.Count;
+        public int Count => data.Count;
+
+        public List<vert2> Data() {
+            return data.ToList();
+        }
         
         /// <summary>
         ///     Connects two loops with an infinitesimal bridge, adding two duplicated vertices in the process
@@ -187,14 +207,12 @@ namespace csgeom {
             return res;
         }
 
-        public bool IntersectsAny(vert2 p0, vert2 p1, int skipIndex = -1) {
+        public bool IntersectsAny(vert2 p0, vert2 p1) {
             for (int i0 = 0; i0 < Count; i0++) {
                 int i1 = (i0 + 1) % Count;
-                if (i0 != skipIndex && i1 != skipIndex) {
-                    vert2 res = new vert2();
-                    if (Math2.SegmentsIntersecting(p0, p1, this[i0], this[i1], ref res)) {
-                        return true;
-                    }
+                vert2 res = new vert2();
+                if (Math2.SegmentsIntersecting(p0, p1, this[i0], this[i1], ref res)) {
+                    return true;
                 }
             }
             return false;
@@ -204,6 +222,20 @@ namespace csgeom {
             for (int i0 = 0; i0 < Count; i0++) {
                 int i1 = (i0 + 1) % Count;
                 if (i0 != thisIndex && i1 != thisIndex) {
+                    vert2 res = new vert2();
+                    if (Math2.SegmentsIntersecting(p0, p1, this[i0], this[i1], ref res)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        public bool IntersectsAny(int thisIndex0, int thisIndex1) {
+            vert2 p0 = this[thisIndex0];
+            vert2 p1 = this[thisIndex1];
+            for (int i0 = 0; i0 < Count; i0++) {
+                int i1 = (i0 + 1) % Count;
+                if ((i0 != thisIndex0) && (i1 != thisIndex0) && (i0 != thisIndex1) && (i1 != thisIndex1)) {
                     vert2 res = new vert2();
                     if (Math2.SegmentsIntersecting(p0, p1, this[i0], this[i1], ref res)) {
                         return true;
@@ -231,6 +263,9 @@ namespace csgeom {
             return new LineLoop2((rawData != null) ? rawData : new List<vert2>(), true, 0);
         }
 
+        /// <summary>
+        ///     Raw constructor
+        /// </summary>
         LineLoop2(List<vert2> data, bool _integralccw_needsUpdate, double _integralccw) {
             this.data = data;
             this._integralccw_needsUpdate = _integralccw_needsUpdate;
@@ -318,11 +353,11 @@ namespace csgeom {
                     LineLoop2 _verts = verts.Clone();
                     List<primitive2> _tris = new List<primitive2>(_verts.Count - 2);
 
-                    int lastClippedIndex = -1;
                     int index = 0;
 
+                    int attemptedVertices = 0;
                     while (_verts.Count > 3) {
-                        if (index == lastClippedIndex) return new triangulationResult2 { code = triangulationCode.robustnessFailure };
+                        attemptedVertices++;
 
                         //wrap indices around
                         int v0Index = (index - 1 + _verts.Count) % _verts.Count;
@@ -333,9 +368,9 @@ namespace csgeom {
                         vert2 v1 = _verts[v1Index];
                         vert2 v2 = _verts[v2Index];
 
-                        
+
+                        bool anyInside = false;
                         if (((v1.x - v0.x) * (v1.y + v0.y) + (v2.x - v1.x) * (v2.y + v1.y) + (v0.x - v2.x) * (v0.y + v2.y)) <= 0) {
-                            bool anyInside = false;
                             for (int j = 0; j < _verts.Count; j++) {
                                 if (j != v0Index && j != v1Index && j != v2Index) {
 
@@ -353,10 +388,12 @@ namespace csgeom {
                             if (!anyInside) {
                                 _tris.Add(new primitive2(v0, v1, v2));
                                 _verts.Remove(index % _verts.Count);
-                                lastClippedIndex = index;
+                                attemptedVertices = 0;
                             }
                         }
-
+                        
+                        if (attemptedVertices == _verts.Count) return new triangulationResult2 { code = triangulationCode.robustnessFailure };
+                        
                         index = (index + 1) % _verts.Count;
                     }
                     _tris.Add(new primitive2(_verts[0], _verts[1], _verts[2]));
@@ -370,30 +407,18 @@ namespace csgeom {
     public class SimplePolygonWithHoles {
         public LineLoop2 verts;
         public List<LineLoop2> holes;
-
-        static bool mainToHoleIntersectsAnyHole(int mainIndex, int holeIndex, int holeVertexIndex) {
-            vert2 mainVert = verts[mainIndex];
-            vert2 holeVert = holes[holeIndex][holeVertexIndex];
-            for(int i = 0; i < holes.Count; i++) {
-                LineLoop2 hole = holes[i];
-
-                if(i == holeIndex) {
-                    if (hole.IntersectsAny(mainVert, holeVertexIndex)) return true; //check by index explicitly
+        
+        static bool AnyIntersections(LineLoop2[] loops, int vert0LoopIndex, int vert0Index, int vert1LoopIndex, int vert1Index) {
+            vert2 p0 = loops[vert0LoopIndex][vert0Index];
+            vert2 p1 = loops[vert1LoopIndex][vert1Index];
+            for(int i = 0; i < loops.Length; i++) {
+                if (i == vert0LoopIndex) {
+                    if (loops[i].IntersectsAny(p1, vert0Index)) return true;
+                } else if(i == vert1LoopIndex) {
+                    if (loops[i].IntersectsAny(p0, vert1Index)) return true;
                 } else {
-                    if (hole.IntersectsAny(mainVert, holeVert)) return true;
+                    if (loops[i].IntersectsAny(p0, p1)) return true;
                 }
-            }
-            return false;
-        }
-        static bool holeToHoleIntersectsAnyHole(int hole0, int hole0Vertex, int hole1, int hole1Vertex, List<LineLoop2> holes) {
-            vert2 p0 = holes[hole0][hole0Vertex];
-            vert2 p1 = holes[hole1][hole1Vertex];
-            for (int h = 0; h < holes.Count; h++) {
-                LineLoop2 hole = holes[h];
-
-                int skip = (h == hole0) ? hole0Vertex : ((h == hole1) ? hole1Vertex : -1);
-
-                if (hole.IntersectsAny(p0, p1, skip)) return true;
             }
             return false;
         }
@@ -409,77 +434,101 @@ namespace csgeom {
         }
 
         public SimplePolygon Simplify() {
-            SimplePolygon res = new SimplePolygon();
-            res.verts = verts.Clone();
-
-            //each hole must be eliminated
-            for (int currentHoleIndex = 0; currentHoleIndex < holes.Count; currentHoleIndex++) {
-                LineLoop2 currentHole = holes[currentHoleIndex];
+            List<LineLoop2> remainingLoops = holes.ToList();
+            remainingLoops.Insert(0, verts.Clone());
+            
+            //iterate over each hole, trying to find a line that cuts the hole out without intersecting anything else
+            while(remainingLoops.Count > 1) {
+                LineLoop2 hole = remainingLoops[1];
 
                 bool holeDone = false;
                 int foundVertexIndex = -1;
-                int foundHoleIndex = -1;
+                int foundLoopIndex = -1;
                 int foundOtherVertexIndex = -1;
 
-                //check all the vertices of this hole
-                for (int currentHoleVertexIndex = 0; currentHoleVertexIndex < currentHole.Count; currentHoleVertexIndex++) {
-                    vert2 currentHoleVertex = currentHole[currentHoleVertexIndex];
+                //we have go into each loop including the main loop at index 0 
+                for (int loopIndex = 0; loopIndex < remainingLoops.Count; loopIndex++) {
+                    if (loopIndex == 1) continue;
 
-                    //first check outer loop vertices
-                    for(int mainVertexIndex = 0; mainVertexIndex < res.verts.Count; mainVertexIndex++) {
-                        if(!mainToHoleIntersectsAnyHole(mainVertexIndex, currentHoleIndex, currentHoleVertexIndex) &&
-                           !res.verts.IntersectsAny(currentHoleVertex, mainVertexIndex)) {
-                            //we've found a connection between a hole and the outer loop!
-                            holeDone = true;
-                            foundVertexIndex = currentHoleVertexIndex;
-                            foundHoleIndex = -1; //not a hole, its the main loop
-                            foundOtherVertexIndex = mainVertexIndex;
-                            break;
-                        }
-                    }
+                    LineLoop2 loop = remainingLoops[loopIndex];
 
-                    if (!holeDone) {
-                        //check all the other holes
-                        for (int otherHoleIndex = 0; otherHoleIndex < holes.Count; otherHoleIndex++) {
-                            if (otherHoleIndex == currentHoleIndex) continue;
-                            LineLoop2 otherHole = holes[otherHoleIndex];
+                    //check each vertex in this hole...
+                    for (int p0Index = 0; p0Index < hole.Count; p0Index++) {
+                    vert2 p0 = hole[p0Index];
+
+
+                        //and make a segment with each vertex in this loop...
+                        for(int p1Index = 0; p1Index < loop.Count; p1Index++) {
+                            vert2 p1 = loop[p1Index];
                             
-                            
-                            for (int otherHoleVertexIndex = 0; otherHoleVertexIndex < otherHole.Count; otherHoleVertexIndex++) {
-                                vert2 otherHoleVertex = otherHole[otherHoleVertexIndex];
+                            //we have now obtained our line segment that must be checked for collision against every pre-existing line segment
+                            //this operation is important enough to have its own function
+                            if(!AnyIntersections(remainingLoops.ToArray(), 1, p0Index, loopIndex, p1Index)) {
 
-                                if(!res.verts.IntersectsAny(currentHoleVertex, otherHoleVertex) &&
-                                   !holeToHoleIntersectsAnyHole(currentHoleIndex, currentHoleVertexIndex, otherHoleIndex, otherHoleVertexIndex)) {
+                                //we're almost done, just make sure it isn't the wrong side of a hole cutting edge
+                                bool valid = true;
+
+                                {
+                                    vert2 n0 = (p0 - p1);
+                                    vert2 p0n0 = (loop[(p1Index - 1 + loop.Count) % loop.Count] - p1);
+                                    vert2 p0n1 = (loop[(p1Index + 1) % loop.Count] - p1);
+
+                                    double ap0n0 = Math.Atan2(p0n0.y, p0n0.x) + Math.PI * 2;
+                                    double an0 = Math.Atan2(n0.y, n0.x) + Math.PI * 2; if (an0 < ap0n0) an0 += Math.PI * 2;
+                                    double ap0n1 = Math.Atan2(p0n1.y, p0n1.x) + Math.PI * 2; if (ap0n1 < ap0n0) ap0n1 += Math.PI * 2;
+
+                                    if (an0 > ap0n0 && an0 < ap0n1) valid = false;
+
+                                }
+
+                                if (valid) {
+                                    vert2 n0 = (p1 - p0);
+                                    vert2 p0n0 = (hole[(p1Index - 1 + hole.Count) % hole.Count] - p0);
+                                    vert2 p0n1 = (hole[(p1Index + 1) % hole.Count] - p0);
+
+                                    double ap0n0 = Math.Atan2(p0n0.y, p0n0.x) + Math.PI * 2;
+                                    double an0 = Math.Atan2(n0.y, n0.x) + Math.PI * 2; if(an0 < ap0n0) an0 += Math.PI * 2;
+                                    double ap0n1 = Math.Atan2(p0n1.y, p0n1.x) + Math.PI * 2; if (ap0n1 < ap0n0) ap0n1 += Math.PI * 2;
+
+                                    if (an0 > ap0n0 && an0 < ap0n1) valid = false;
+                                }
+
+                                
+                                if (valid) {
                                     holeDone = true;
-                                    foundVertexIndex = currentHoleVertexIndex;
-                                    foundHoleIndex = otherHoleIndex;
-                                    foundOtherVertexIndex = otherHoleVertexIndex;
+                                    foundVertexIndex = p0Index;
+                                    foundLoopIndex = loopIndex;
+                                    foundOtherVertexIndex = p1Index;
                                     break;
                                 }
                             }
-
-                            if (holeDone) break;
                         }
+
+                        if (holeDone) break;
                     }
 
                     if (holeDone) break;
                 }
 
+                if (!holeDone) throw new Exception("Found no way out for a hole");
+
                 Console.WriteLine("holeDone: " + holeDone);
                 Console.WriteLine("foundVertexIndex: " + foundVertexIndex);
-                Console.WriteLine("foundHoleIndex: " + (foundHoleIndex == -1 ? "main" : foundVertexIndex.ToString()));
+                Console.WriteLine("foundHoleIndex: " + (foundLoopIndex == -1 ? "main" : foundVertexIndex.ToString()));
                 Console.WriteLine("foundHoleVertexIndex: " + foundOtherVertexIndex);
 
-                if(foundHoleIndex == -1) {
-                    res.verts = LineLoop2.PseudoSimpleJoin(res.verts, foundOtherVertexIndex, currentHole, foundVertexIndex, false, false);
-                    holes.RemoveAt(currentHoleIndex);
-                    currentHoleIndex--;
+                //we need this conditional to account for the main loop winding ccw and holes winding cw
+                if (foundLoopIndex == 0) {
+                    remainingLoops[0] = LineLoop2.PseudoSimpleJoin(remainingLoops[0], foundOtherVertexIndex, hole, foundVertexIndex, false, false);
+                    remainingLoops.RemoveAt(1);
                 } else {
-                    int z = 0;
+                    remainingLoops[1] = LineLoop2.PseudoSimpleJoin(remainingLoops[foundLoopIndex], foundOtherVertexIndex, hole, foundVertexIndex, false, false);
+                    remainingLoops.RemoveAt(foundLoopIndex);
                 }
-
-                //currentHoleIndex--;
             }
+
+            SimplePolygon res = new SimplePolygon();
+            res.verts = remainingLoops[0];
             return res;
         }
 

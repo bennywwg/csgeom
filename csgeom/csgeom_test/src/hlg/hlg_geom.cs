@@ -200,6 +200,25 @@ namespace csgeom_test {
         }
 
         public void randomColoredTriangles(List<vec2[]> _verts) {
+            Random r = new Random(5);
+            for (int i = 0; i < _verts.Count; i++) {
+                indices.Add(positions.Count + 0);
+                indices.Add(positions.Count + 1);
+                indices.Add(positions.Count + 2);
+
+                positions.Add(new vec3(_verts[i][0]));
+                positions.Add(new vec3(_verts[i][1]));
+                positions.Add(new vec3(_verts[i][2]));
+
+                float c = (float)r.NextDouble() * 100.0f;
+
+                colors.Add(new vec3(0, 0, c));
+                colors.Add(new vec3(0, 0, c));
+                colors.Add(new vec3(0, 0, c));
+            }
+        }
+
+        public void triangles(List<vec2[]> _verts, vec3 color) {
             Random r = new Random();
             for (int i = 0; i < _verts.Count; i++) {
                 indices.Add(positions.Count + 0);
@@ -210,9 +229,9 @@ namespace csgeom_test {
                 positions.Add(new vec3(_verts[i][1]));
                 positions.Add(new vec3(_verts[i][2]));
 
-                colors.Add(new vec3((float)r.NextDouble() * 0.2f + 0.8f, (float)r.NextDouble() * 0.2f + 0.5f, (float)r.NextDouble() * 0.2f + 0.5f));
-                colors.Add(new vec3((float)r.NextDouble() * 0.2f + 0.8f, (float)r.NextDouble() * 0.2f + 0.5f, (float)r.NextDouble() * 0.2f + 0.5f));
-                colors.Add(new vec3((float)r.NextDouble() * 0.2f + 0.8f, (float)r.NextDouble() * 0.2f + 0.5f, (float)r.NextDouble() * 0.2f + 0.5f));
+                colors.Add(color);
+                colors.Add(color);
+                colors.Add(color);
             }
         }
 
