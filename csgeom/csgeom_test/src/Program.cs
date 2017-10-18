@@ -9,114 +9,169 @@ using System.Diagnostics;
 
 namespace csgeom_test {
     public static class Program {
-        public static renderPass ui;
+        public static Window win;
 
-        public static void Main(string[] args) {
-            window win = new window(900, 900, "Circles");
+        public static RenderPass ui;
+
+        public static HLGfont consolas;
+
+        public static Shader colorShader;
+        public static Shader shadeless;
+
+        public static HUDBase hud;
+
+
+        public static void Initialize() {
+            try {
+                win = new Window(900, 900, "Circles");
+                Console.WriteLine("Window initialized with OpenGL version 3.3");
+            } catch {
+                Console.WriteLine("Window failed to initialize");
+            }
+
+            Vao.Initialize();
+
+            try {
+                consolas = new HLGfont("../../resources/consolas.png", "../../resources/shaders/text/s.vert", "../../resources/shaders/text/s.frag") {
+                    name = "Consolas"
+                };
+                Console.WriteLine("Consolas font loaded from consolas.png");
+            } catch {
+                Console.WriteLine("Consolas font failed to load");
+            }
+
+            try {
+                colorShader = new Shader("../../resources/shaders/color/s.vert", "../../resources/shaders/color/s.frag");
+                Console.WriteLine("Shader 'color' loaded");
+            } catch {
+                Console.WriteLine("Shader 'color' failed to load");
+            }
+
+            try {
+                shadeless = new Shader("../../resources/shaders/shadeless/s.vert", "../../resources/shaders/shadeless/s.frag");
+                Console.WriteLine("Shader 'shadeless' loaded");
+            } catch {
+                Console.WriteLine("Shader 'shadeless' failed to load");
+            }
             
-            double lastTime = 0.0;
+            ui = new RenderPass(colorShader, 0, 0) {
+                depthEnabled = false
+            };
+        }
 
-            vao.initialize();
+        public static void Cleanup() {
+            consolas.destroy();
 
-            hlg_font.consolas = new hlg_font("../../resources/consolas.png", "../../resources/shaders/text/s.vert", "../../resources/shaders/text/s.frag");
-            hlg_font.consolas.name = "Consolas";
+            colorShader.destroy();
 
+            shadeless.destroy();
 
+            Vao.Destroy();
+        }
 
-            csgeom.SimplePolygonWithHoles poly = new csgeom.SimplePolygonWithHoles();
-            csgeom.LineLoop2 currentHole = new csgeom.LineLoop2();
-            csgeom.triangulationCode code = csgeom.triangulationCode.insufficientVertices;
-
-            
-
-            texture colors = texture.color("../../resources/colors.png");
-
-            shader colorShader = new shader("../../resources/shaders/color/s.vert", "../../resources/shaders/color/s.frag");
-            shader shadeless = new shader("../../resources/shaders/shadeless/s.vert", "../../resources/shaders/shadeless/s.frag");
-
-            ui = new renderPass(colorShader, 0, 0);
-            ui.depthEnabled = false;
-
-            hudBase b = new hudBase(hlg_font.consolas, ui);
-            b.mouseDown = (ba, bu) => {
-                if (bu == mouseButton.left) {
-                    poly.verts.Add(new csgeom.vert2 { x = win.mouse.x, y = win.mouse.y });
-                } else {
-                    currentHole.Add(new csgeom.vert2 { x = win.mouse.x, y = win.mouse.y });
+        public static void SetupUI() {
+            hud = new HUDBase(consolas, ui) {
+                MouseDown = (self, ba, bu) => {
+                    if (bu == MouseButton.left) {
+                        poly.verts.Add(new csgeom.gvec2 { x = win.Mouse.x, y = win.Mouse.y });
+                    } else {
+                        currentHole.Add(new csgeom.gvec2 { x = win.Mouse.x, y = win.Mouse.y });
+                    }
+                },
+                Draw = (self, ba) => {
+                    for (int i = 0; i < poly.verts.Count; i++) {
+                        vec2 pos = poly.verts[i].glm();
+                        //ba.text(i.ToString(), pos.x - i.ToString().Length * 0.0125f, pos.y - 0.025f, 0.05f);
+                    }
                 }
             };
-            b.draw = ba => {
-                for (int i = 0; i < poly.verts.Count; i++) {
-                    vec2 pos = poly.verts[i].glm();
-                    //ba.text(i.ToString(), pos.x - i.ToString().Length * 0.0125f, pos.y - 0.025f, 0.05f);
-                }
-            };
 
-            hudItem clearAllButton = new hudItem("clear selection", 0.3f, 0.1f, b);
-            clearAllButton.localX = -1;
-            clearAllButton.localY = -0.9f;
-            clearAllButton.draw = ba => {
-                ba.rect(clearAllButton.x, clearAllButton.y, 0.3f, 0.1f, new vec3(0.3f, 0.3f, 0.3f));
-                ba.text("clear", clearAllButton.x, clearAllButton.y, 0.08f);
+            HUDItem clearAllButton = new HUDItem("clear selection", 0.3f, 0.1f, b) {
+                localX = -1,
+                localY = -0.9f
             };
-            clearAllButton.mouseDown = (ba, bu) => {
+            clearAllButton.Draw = (self, ba) => {
+                ba.Rect(self.X, self.Y, 0.3f, 0.1f, new vec3(0.3f, 0.3f, 0.3f));
+                ba.Text("clear", self.X, self.Y, 0.08f);
+            };
+            clearAllButton.MouseDown = (self, ba, bu) => {
                 poly.verts.Clear();
                 poly.holes.Clear();
                 currentHole = new csgeom.LineLoop2();
             };
 
-            hudItem holeButton = new hudItem("next hole", 0.45f, 0.1f, b);
-            holeButton.localX = -1;
-            holeButton.localY = -0.8f;
-            holeButton.draw = ba => {
-                ba.rect(holeButton.x, holeButton.y, holeButton.width, holeButton.height, new vec3(0.3f, 0.3f, 0.3f));
-                ba.text("next hole", holeButton.x, holeButton.y, 0.08f);
+            HUDItem holeButton = new HUDItem("next hole", 0.45f, 0.1f, b) {
+                localX = -1,
+                localY = -0.8f
             };
-            holeButton.mouseDown = (ba, bu) => {
+            holeButton.Draw = (self, ba) => {
+                ba.Rect(self.X, self.Y, self.Width, self.Height, new vec3(0.3f, 0.3f, 0.3f));
+                ba.Text("next hole", self.X, self.Y, 0.08f);
+            };
+            holeButton.MouseDown = (self, ba, bu) => {
                 poly.holes.Add(currentHole);
                 currentHole = new csgeom.LineLoop2();
             };
 
             int index = 0;
 
-            hudItem nextButton = new hudItem("next", 0.45f, 0.1f, b);
-            nextButton.localX = -1;
-            nextButton.localY = -0.6f;
-            nextButton.draw = ba => {
-                ba.rect(nextButton.x, nextButton.y, nextButton.width, nextButton.height, new vec3(0.3f, 0.3f, 0.3f));
-                ba.text("next", nextButton.x, nextButton.y, 0.08f);
+            HUDItem nextButton = new HUDItem("next", 0.45f, 0.1f, b) {
+                localX = -1,
+                localY = -0.6f
             };
-            nextButton.mouseDown = (ba, bu) => {
+            nextButton.Draw = (self, ba) => {
+                ba.Rect(self.X, self.Y, self.Width, self.Height, new vec3(0.3f, 0.3f, 0.3f));
+                ba.Text("next", self.X, self.Y, 0.08f);
+            };
+            nextButton.MouseDown = (self, ba, bu) => {
                 index++;
             };
-            hudItem prevButton = new hudItem("prev", 0.45f, 0.1f, b);
-            prevButton.localX = -1;
-            prevButton.localY = -0.7f;
-            prevButton.draw = ba => {
-                ba.rect(prevButton.x, prevButton.y, prevButton.width, prevButton.height, new vec3(0.3f, 0.3f, 0.3f));
-                ba.text("prev", prevButton.x, prevButton.y, 0.08f);
+            HUDItem prevButton = new HUDItem("prev", 0.45f, 0.1f, b) {
+                localX = -1,
+                localY = -0.7f
             };
-            prevButton.mouseDown = (ba, bu) => {
+            prevButton.Draw = (self, ba) => {
+                ba.Rect(self.X, self.Y, self.Width, self.Height, new vec3(0.3f, 0.3f, 0.3f));
+                ba.Text("prev", self.X, self.Y, 0.08f);
+            };
+            prevButton.MouseDown = (self, ba, bu) => {
                 index--;
             };
+        }
 
-            win.mouseDown = new Action<OpenTK.Input.MouseButtonEventArgs>(ev => {
+
+
+        public static void Main(string[] args) {
+            
+            
+            double lastTime = 0.0;
+
+
+
+            csgeom.WeaklySimplePolygon poly = new csgeom.WeaklySimplePolygon();
+            csgeom.LineLoop2 currentHole = new csgeom.LineLoop2();
+            csgeom.TriangulationCode code = csgeom.TriangulationCode.insufficientVertices;
+            
+
+            
+
+            win.MouseDown = new Action<OpenTK.Input.MouseButtonEventArgs>(ev => {
                 if (ev.Button == OpenTK.Input.MouseButton.Left) {
-                    b.click(win.mouse.x, win.mouse.y);
+                    b.Click(win.Mouse.x, win.Mouse.y);
                 } else {
-                    b.rightClick(win.mouse.x, win.mouse.y);
+                    b.RightClick(win.Mouse.x, win.Mouse.y);
                 }
             });
 
-            while (!win.closed) {
+            while (!win.Closed) {
                 GL.ClearColor(142.0f/511.0f, 188.0f/511.0f, 229.0f/511.0f, 1.0f);
 
                 GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
                 GL.Enable(EnableCap.DepthTest);
 
                 Stopwatch sw = Stopwatch.StartNew();
-                csgeom.SimplePolygon spoly = poly.Simplify();
-                csgeom.triangulationResult2 res = spoly.Triangulate();
+                csgeom.LineLoop2 spoly = poly.Simplify();
+                csgeom.TriangulationResult2 res = spoly.Triangulate();
                 lastTime = (sw.ElapsedTicks / (double)Stopwatch.Frequency);
 
                 Console.Clear();
@@ -129,7 +184,7 @@ namespace csgeom_test {
 
                 List<vec2[]> edges = new List<vec2[]>();
                 List<vec2[]> edgesAll = new List<vec2[]>();
-                List<vec2> glms = spoly.verts.Data().Select(vert => vert.glm()).ToList();
+                List<vec2> glms = spoly.Data().Select(vert => vert.glm()).ToList();
                 for (int i = 0; i < glms.Count; i++) {
                     if (i == index) edges.Add(new vec2[] { glms[i], glms[i], glms[(i + 1) % glms.Count]});
                     edgesAll.Add(new vec2[] { glms[i], glms[i], glms[(i + 1) % glms.Count] });
@@ -143,37 +198,37 @@ namespace csgeom_test {
                 Random r = new Random(5);
 
                 if (res.data != null) {
-                    mesh tri = new mesh(meshComponent.colors);
-                    tri.randomColoredTriangles(res.data.Select(ts => new vec2[] { ts.v0.glm(), ts.v1.glm(), ts.v2.glm() }).ToList());
-                    model m = new model(tri);
-                    ui.drawModel(m, mat4.Identity, PolygonMode.Fill);
-                    m.destroy();
+                    Mesh tri = new Mesh(MeshComponent.colors);
+                    tri.RandomColoredTriangles(res.data.Select(ts => new vec2[] { ts.v0.glm(), ts.v1.glm(), ts.v2.glm() }).ToList());
+                    Model m = new Model(tri);
+                    ui.DrawModel(m, mat4.Identity, PolygonMode.Fill);
+                    m.Destroy();
                 }
 
 
-                mesh edgeMeshAll = new mesh(meshComponent.colors);
-                edgeMeshAll.triangles(edgesAll, vec3.Zero);
-                model edgeModelAll = new model(edgeMeshAll);
-                ui.drawModel(edgeModelAll, mat4.Identity, PolygonMode.Line);
-                edgeModelAll.destroy();
+                Mesh edgeMeshAll = new Mesh(MeshComponent.colors);
+                edgeMeshAll.Triangles(edgesAll, vec3.Zero);
+                Model edgeModelAll = new Model(edgeMeshAll);
+                ui.DrawModel(edgeModelAll, mat4.Identity, PolygonMode.Line);
+                edgeModelAll.Destroy();
 
-                mesh edgeMesh = new mesh(meshComponent.colors);
-                edgeMesh.triangles(edges, vec3.Ones);
-                model edgeModel = new model(edgeMesh);
-                ui.drawModel(edgeModel, mat4.Identity, PolygonMode.Line, 3);
-                edgeModel.destroy();
+                Mesh edgeMesh = new Mesh(MeshComponent.colors);
+                edgeMesh.Triangles(edges, vec3.Ones);
+                Model edgeModel = new Model(edgeMesh);
+                ui.DrawModel(edgeModel, mat4.Identity, PolygonMode.Line, 3);
+                edgeModel.Destroy();
 
 
-                b.drawAll();
+                b.DrawAll();
 
-                win.flush();
+                win.Flush();
 
                 Thread.Sleep(20);
             }
 
-            hlg_font.consolas.destroy();
+            HLGfont.consolas.destroy();
 
-            vao.destroy();
+            Vao.Destroy();
         }
     }
 }

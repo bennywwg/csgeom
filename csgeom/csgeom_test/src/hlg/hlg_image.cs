@@ -6,10 +6,10 @@ using System.Drawing;
 
 namespace csgeom_test {
     public static class textureStatus {
-        public static Dictionary<TextureUnit, texture> currentBound = new Dictionary<TextureUnit, texture>();
+        public static Dictionary<TextureUnit, Texture> currentBound = new Dictionary<TextureUnit, Texture>();
     }
 
-    public class texture {
+    public class Texture {
         public readonly int ptr;
 
         public readonly TextureUnit textureUnit;
@@ -45,13 +45,13 @@ namespace csgeom_test {
         }
 
         public void globalUnbind() {
-            texture[] allTextures = textureStatus.currentBound.Select(kvp => kvp.Value).ToArray();
-            foreach (texture tx in allTextures) {
+            Texture[] allTextures = textureStatus.currentBound.Select(kvp => kvp.Value).ToArray();
+            foreach (Texture tx in allTextures) {
                 tx.unbind();
             }
         }
 
-        private texture(int width, int height, TextureUnit textureUnit) {
+        private Texture(int width, int height, TextureUnit textureUnit) {
             this.textureUnit = textureUnit;
 
             ptr = GL.GenTexture();
@@ -64,7 +64,7 @@ namespace csgeom_test {
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
         }
 
-        private texture(string path, TextureUnit textureUnit) {
+        private Texture(string path, TextureUnit textureUnit) {
             this.textureUnit = textureUnit;
 
             Image img = Image.FromFile(path);
@@ -86,15 +86,15 @@ namespace csgeom_test {
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
         }
 
-        public static texture color(string path) {
-            return new texture(path, getTextureUnit(0));
+        public static Texture color(string path) {
+            return new Texture(path, getTextureUnit(0));
         }
-        public static texture generic(string path, int textureUnit) {
+        public static Texture generic(string path, int textureUnit) {
             if (!isValidAndNotReservedUnit(textureUnit)) throw new Exception("Can't use reserved texture unit " + textureUnit);
-            return new texture(path, getTextureUnit(textureUnit));
+            return new Texture(path, getTextureUnit(textureUnit));
         }
-        public static texture empty(int width, int height, int textureUnit) {
-            return new texture(width, height, getTextureUnit(textureUnit));
+        public static Texture empty(int width, int height, int textureUnit) {
+            return new Texture(width, height, getTextureUnit(textureUnit));
         }
 
         public void destroy() {
@@ -109,7 +109,7 @@ namespace csgeom_test {
         public int width { get; private set; }
         public int height { get; private set; }
 
-        private texture tx;
+        private Texture tx;
 
         public void bind() {
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbptr);
@@ -120,7 +120,7 @@ namespace csgeom_test {
             this.width = width;
             this.height = height;
 
-            tx = texture.empty(width, height, 8);
+            tx = Texture.empty(width, height, 8);
 
             _fbptr = GL.GenFramebuffer();
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbptr);

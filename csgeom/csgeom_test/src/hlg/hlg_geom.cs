@@ -6,95 +6,95 @@ using System.Threading.Tasks;
 using GlmSharp;
 
 namespace csgeom_test {
-    public enum meshComponent {
+    public enum MeshComponent {
         normals = 1 << 0,
         uvs = 1 << 1,
         colors = 1 << 2
     }
 
-    public class mesh {
+    public class Mesh {
         readonly List<vec3> positions;
-        public float[] positionData => positions.rawData();
+        public float[] PositionData => positions.RawData();
         readonly List<vec3> normals;
-        public float[] normalData => hasNormals ? normals.rawData() : null;
+        public float[] NormalData => HasNormals ? normals.RawData() : null;
         readonly List<vec2> uvs;
-        public float[] uvData => hasUVs ? uvs.rawData() : null;
+        public float[] UVData => HasUVs ? uvs.RawData() : null;
         readonly List<vec3> colors;
-        public float[] colorData => hasColors ? colors.rawData() : null;
+        public float[] ColorData => HasColors ? colors.RawData() : null;
         readonly List<int> indices;
-        public int[] indexData => indices.rawData();
+        public int[] IndexData => indices.RawData();
 
-        public readonly meshComponent components;
+        public readonly MeshComponent components;
 
-        public bool hasNormals => (components & meshComponent.normals) != 0;
-        public bool hasUVs => (components & meshComponent.uvs) != 0;
-        public bool hasColors => (components & meshComponent.colors) != 0;
+        public bool HasNormals => (components & MeshComponent.normals) != 0;
+        public bool HasUVs => (components & MeshComponent.uvs) != 0;
+        public bool HasColors => (components & MeshComponent.colors) != 0;
 
-        private int findVertex(vec3 p, vec3 n, vec2 uv, vec3 c) {
+        private int FindVertex(vec3 p, vec3 n, vec2 uv, vec3 c) {
             for(int i = 0; i < positions.Count; i++) {
-                bool matchingPosition = meshExtensions.compareVec(p, positions[i]);
-                if (!matchingPosition) break;
-                bool matchingNormal = hasNormals ? meshExtensions.compareVec(n, normals[i]) : true;
-                if (!matchingNormal) break;
-                bool matchingUVs = hasUVs ? meshExtensions.compareVec(uv, uvs[i]) : true;
-                if (!matchingUVs) break;
-                bool matchingColors = hasColors ? meshExtensions.compareVec(c, colors[i]) : true;
-                if (!matchingColors) break;
+                bool matchingPosition = MeshExtensions.CompareVec(p, positions[i]);
+                if (!matchingPosition) continue;
+                bool matchingNormal = HasNormals ? MeshExtensions.CompareVec(n, normals[i]) : true;
+                if (!matchingNormal) continue;
+                bool matchingUVs = HasUVs ? MeshExtensions.CompareVec(uv, uvs[i]) : true;
+                if (!matchingUVs) continue;
+                bool matchingColors = HasColors ? MeshExtensions.CompareVec(c, colors[i]) : true;
+                if (!matchingColors) continue;
 
                 return i;
             }
             return -1;
         }
 
-        private void addTriangle(vec3 p0, vec3 p1, vec3 p2, vec3 n0, vec3 n1, vec3 n2, vec2 uv0, vec2 uv1, vec2 uv2, vec3 c0, vec3 c1, vec3 c2) {
-            int index0 = findVertex(p0, n0, uv0, vec3.Zero);
-            int index1 = findVertex(p1, n1, uv1, vec3.Zero);
-            int index2 = findVertex(p2, n2, uv2, vec3.Zero);
+        private void AddTriangle(vec3 p0, vec3 p1, vec3 p2, vec3 n0, vec3 n1, vec3 n2, vec2 uv0, vec2 uv1, vec2 uv2, vec3 c0, vec3 c1, vec3 c2) {
+            int index0 = FindVertex(p0, n0, uv0, vec3.Zero);
+            int index1 = FindVertex(p1, n1, uv1, vec3.Zero);
+            int index2 = FindVertex(p2, n2, uv2, vec3.Zero);
 
             if (index0 == -1) {
                 index0 = positions.Count;
                 positions.Add(p0);
-                if(hasNormals) normals.Add(n0);
-                if(hasUVs) uvs.Add(uv0);
-                if(hasColors) colors.Add(c0);
+                if(HasNormals) normals.Add(n0);
+                if(HasUVs) uvs.Add(uv0);
+                if(HasColors) colors.Add(c0);
             }
             if (index1 == -1) {
                 index1 = positions.Count;
                 positions.Add(p1);
-                if (hasNormals) normals.Add(n1);
-                if (hasUVs) uvs.Add(uv1);
-                if (hasColors) colors.Add(c1);
+                if (HasNormals) normals.Add(n1);
+                if (HasUVs) uvs.Add(uv1);
+                if (HasColors) colors.Add(c1);
             }
             if (index2 == -1) {
                 index2 = positions.Count;
                 positions.Add(p2);
-                if (hasNormals) normals.Add(n2);
-                if (hasUVs) uvs.Add(uv2);
-                if (hasColors) colors.Add(c2);
+                if (HasNormals) normals.Add(n2);
+                if (HasUVs) uvs.Add(uv2);
+                if (HasColors) colors.Add(c2);
             }
 
             indices.Add(index0);
             indices.Add(index1);
             indices.Add(index2);
         }
-        public void addColorOnlyTriangle(vec3 p0, vec3 p1, vec3 p2, vec3 c0, vec3 c1, vec3 c2) {
-            addTriangle(
+        public void AddColorOnlyTriangle(vec3 p0, vec3 p1, vec3 p2, vec3 c0, vec3 c1, vec3 c2) {
+            AddTriangle(
                 p0,         p1,         p2,
                 vec3.Zero,  vec3.Zero,  vec3.Zero,
                 vec2.Zero,  vec2.Zero,  vec2.Zero,
                 c0,         c1,         c2
             );
         }
-        public void addNormalOnlyTriangle(vec3 p0, vec3 p1, vec3 p2, vec3 n0, vec3 n1, vec3 n2) {
-            addTriangle(
+        public void AddNormalOnlyTriangle(vec3 p0, vec3 p1, vec3 p2, vec3 n0, vec3 n1, vec3 n2) {
+            AddTriangle(
                 p0, p1, p2,
                 n0, n1, n2,
                 vec2.Zero, vec2.Zero, vec2.Zero,
                 vec3.Zero, vec3.Zero, vec3.Zero
             );
         }
-        public void addUVOnlyTriangle(vec3 p0, vec3 p1, vec3 p2, vec2 uv0, vec2 uv1, vec2 uv2) {
-            addTriangle(
+        public void AddUVOnlyTriangle(vec3 p0, vec3 p1, vec3 p2, vec2 uv0, vec2 uv1, vec2 uv2) {
+            AddTriangle(
                 p0, p1, p2,
                 vec3.Zero, vec3.Zero, vec3.Zero,
                 uv0, uv1, uv2,
@@ -102,7 +102,7 @@ namespace csgeom_test {
             );
         }
         
-        public void loadObj(string path) {
+        public void LoadObj(string path) {
             List<vec3> verts = new List<vec3>();
             List<vec3> normals = new List<vec3>();
             List<vec2> uvs = new List<vec2>();
@@ -190,7 +190,7 @@ namespace csgeom_test {
             }
 
             foreach (int[] attributeIndices in indices) {
-                addTriangle(
+                AddTriangle(
                     verts[attributeIndices[0]], verts[attributeIndices[3]], verts[attributeIndices[6]],
                     normals[attributeIndices[2]], normals[attributeIndices[5]], normals[attributeIndices[8]],
                     uvs[attributeIndices[1]], uvs[attributeIndices[4]], uvs[attributeIndices[7]],
@@ -199,7 +199,7 @@ namespace csgeom_test {
             }
         }
 
-        public void randomColoredTriangles(List<vec2[]> _verts) {
+        public void RandomColoredTriangles(List<vec2[]> _verts) {
             Random r = new Random(5);
             for (int i = 0; i < _verts.Count; i++) {
                 indices.Add(positions.Count + 0);
@@ -218,7 +218,7 @@ namespace csgeom_test {
             }
         }
 
-        public void triangles(List<vec2[]> _verts, vec3 color) {
+        public void Triangles(List<vec2[]> _verts, vec3 color) {
             Random r = new Random();
             for (int i = 0; i < _verts.Count; i++) {
                 indices.Add(positions.Count + 0);
@@ -242,18 +242,18 @@ namespace csgeom_test {
         /// <param name="p1">Upper right corner of the rect</param>
         /// <param name="uv0">Lower left corner's uv</param>
         /// <param name="uv1">Upper right corner's uv</param>
-        public static mesh rect(vec2 p0, vec2 p1, vec2 uv0, vec2 uv1) {
-            mesh res = new mesh(meshComponent.uvs);
-            res.addUVOnlyTriangle(new vec3(p0), new vec3(p1), new vec3(p0.x, p1.y, 0),
+        public static Mesh Rect(vec2 p0, vec2 p1, vec2 uv0, vec2 uv1) {
+            Mesh res = new Mesh(MeshComponent.uvs);
+            res.AddUVOnlyTriangle(new vec3(p0), new vec3(p1), new vec3(p0.x, p1.y, 0),
                 uv0, uv1, new vec2(uv0.x, uv1.y)
             );
-            res.addUVOnlyTriangle(new vec3(p0), new vec3(p1.x, p0.y, 0), new vec3(p1),
+            res.AddUVOnlyTriangle(new vec3(p0), new vec3(p1.x, p0.y, 0), new vec3(p1),
                 uv0, new vec2(uv1.x, uv0.y), uv1
             );
             return res;
         }
-        public static mesh text(string text, float x, float y, float scale = 0.2f, float charWidth = 0.5f) {
-            mesh res = new mesh(meshComponent.uvs);
+        public static Mesh Text(string text, float x, float y, float scale = 0.2f, float charWidth = 0.5f) {
+            Mesh res = new Mesh(MeshComponent.uvs);
             
             float xFactor = scale * charWidth;
 
@@ -266,12 +266,12 @@ namespace csgeom_test {
                 vec2 uv0 = new vec2(pos.x / 16.0f, pos.y / 16.0f);
                 vec2 uv1 = uv0 + new vec2(1.0f / 16.0f * charWidth, -1.0f / 16.0f);
 
-                res.addUVOnlyTriangle(
+                res.AddUVOnlyTriangle(
                     new vec3(c0), new vec3(c1), new vec3(c0.x, c1.y, 0),
                     uv0, uv1, new vec2(uv0.x, uv1.y)
                 );
 
-                res.addUVOnlyTriangle(
+                res.AddUVOnlyTriangle(
                     new vec3(c0), new vec3(c1.x, c0.y, 0), new vec3(c1),
                     uv0, new vec2(uv1.x, uv0.y), uv1
                 );
@@ -282,28 +282,28 @@ namespace csgeom_test {
 
             return res;
         }
-        public static mesh coloredRectangle(vec2 size, vec3 color) {
-            mesh res = new mesh(meshComponent.colors);
-            res.addColorOnlyTriangle(vec3.Zero, new vec3(size.x, 0, 0), new vec3(size.x, size.y, 0), color, color, color);
-            res.addColorOnlyTriangle(vec3.Zero, new vec3(size.x, size.y, 0), new vec3(0, size.y, 0), color, color, color);
+        public static Mesh ColoredRectangle(vec2 size, vec3 color) {
+            Mesh res = new Mesh(MeshComponent.colors);
+            res.AddColorOnlyTriangle(vec3.Zero, new vec3(size.x, 0, 0), new vec3(size.x, size.y, 0), color, color, color);
+            res.AddColorOnlyTriangle(vec3.Zero, new vec3(size.x, size.y, 0), new vec3(0, size.y, 0), color, color, color);
             return res;
         }
         
-        public mesh() : this(meshComponent.normals | meshComponent.uvs) {
+        public Mesh() : this(MeshComponent.normals | MeshComponent.uvs) {
         }
-        public mesh(meshComponent components) {
+        public Mesh(MeshComponent components) {
             positions = new List<vec3>();
             indices = new List<int>();
             this.components = components;
 
-            if ((components & meshComponent.normals) != 0) normals = new List<vec3>();
-            if ((components & meshComponent.uvs) != 0) uvs = new List<vec2>();
-            if ((components & meshComponent.colors) != 0) colors = new List<vec3>();
+            if ((components & MeshComponent.normals) != 0) normals = new List<vec3>();
+            if ((components & MeshComponent.uvs) != 0) uvs = new List<vec2>();
+            if ((components & MeshComponent.colors) != 0) colors = new List<vec3>();
         }
     }
 
-    public static class meshExtensions {
-        public static float[] rawData(this List<vec2> list) {
+    public static class MeshExtensions {
+        public static float[] RawData(this List<vec2> list) {
             float[] res = new float[list.Count * 2];
             for (int i = 0; i < list.Count; i++) {
                 res[i * 2 + 0] = list[i].x;
@@ -311,7 +311,7 @@ namespace csgeom_test {
             }
             return res;
         }
-        public static float[] rawData(this List<vec3> list) {
+        public static float[] RawData(this List<vec3> list) {
             float[] res = new float[list.Count * 3];
             for (int i = 0; i < list.Count; i++) {
                 res[i * 3 + 0] = list[i].x;
@@ -320,11 +320,11 @@ namespace csgeom_test {
             }
             return res;
         }
-        public static int[] rawData(this List<int> list) {
+        public static int[] RawData(this List<int> list) {
             return list.ToArray();
         }
 
-        public static float[] rawData(this vec2[] list) {
+        public static float[] RawData(this vec2[] list) {
             float[] res = new float[list.Length * 2];
             for (int i = 0; i < list.Length; i++) {
                 res[i * 2 + 0] = list[i].x;
@@ -332,7 +332,7 @@ namespace csgeom_test {
             }
             return res;
         }
-        public static float[] rawData(this vec3[] list) {
+        public static float[] RawData(this vec3[] list) {
             float[] res = new float[list.Length * 3];
             for (int i = 0; i < list.Length; i++) {
                 res[i * 3 + 0] = list[i].x;
@@ -342,11 +342,11 @@ namespace csgeom_test {
             return res;
         }
 
-        public static bool compareVec(vec2 a, vec2 b) {
+        public static bool CompareVec(vec2 a, vec2 b) {
             float eps = 0.00001f;
             return Math.Abs(a.x - b.x) < eps && Math.Abs(a.y - b.y) < eps;
         }
-        public static bool compareVec(vec3 a, vec3 b) {
+        public static bool CompareVec(vec3 a, vec3 b) {
             float eps = 0.00001f;
             return Math.Abs(a.x - b.x) < eps && Math.Abs(a.y - b.y) < eps && Math.Abs(a.z - b.z) < eps;
         }

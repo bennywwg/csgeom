@@ -59,6 +59,7 @@
     <Compile Include="src\hlg\hlg_image.cs" />
     <Compile Include="src\hlg\hlg_shader.cs" />
     <Compile Include="src\hud.cs" />
+    <Compile Include="src\ObjectManager.cs" />
     <Compile Include="src\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="src\hlg\hlg.cs" />

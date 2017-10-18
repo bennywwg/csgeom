@@ -6,28 +6,29 @@ using System.Threading.Tasks;
 using GlmSharp;
 
 namespace csgeom_test {
-    public class hlg_font {
-        public static hlg_font consolas;
+    public class HLGfont {
+        Texture tx;
+        Shader s;
 
-        texture tx;
-        shader s;
-
-        renderPass pass;
+        RenderPass pass;
 
         public string name;
         public readonly string path;
         public readonly float charWidth;
 
+        string _status;
+        public string Status => _status;
+
         public void drawText(string text, float x, float y, float scale) {
-            model m = new model(mesh.text(text, 0, 0, scale, charWidth), tx);
-            pass.drawModel(m, mat4.Translate(new vec3(x, y, 0)));
-            m.destroy();
+            Model m = new Model(Mesh.Text(text, 0, 0, scale, charWidth), tx);
+            pass.DrawModel(m, mat4.Translate(new vec3(x, y, 0)));
+            m.Destroy();
         }
 
-        public hlg_font(string fontPath, string vertPath, string fragPath, float charWidth = 0.5f) {
-            tx = texture.color(fontPath);
-            s = new shader(vertPath, fragPath);
-            pass = new renderPass(s, 0, 0);
+        public HLGfont(string fontPath, string vertPath, string fragPath, float charWidth = 0.5f) {
+            tx = Texture.color(fontPath);
+            s = new Shader(vertPath, fragPath);
+            pass = new RenderPass(s, 0, 0);
             this.charWidth = charWidth;
             this.path = fontPath;
         }

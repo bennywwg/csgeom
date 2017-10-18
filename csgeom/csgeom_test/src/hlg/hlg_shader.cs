@@ -3,7 +3,7 @@ using OpenTK.Graphics.OpenGL;
 using GlmSharp;
 
 namespace csgeom_test {
-    public class shader {
+    public class Shader {
         private int _ptr;
         public int ptr => _ptr;
 
@@ -85,7 +85,7 @@ namespace csgeom_test {
             GL.DeleteProgram(ptr);
         }
 
-        public shader(string vertPath, string fragPath) {
+        public Shader(string vertPath, string fragPath) {
             _uniformMap = new Dictionary<string, int>();
             loadFile(vertPath, fragPath);
         }

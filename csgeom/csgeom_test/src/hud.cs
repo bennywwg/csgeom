@@ -6,84 +6,86 @@ using System.Threading.Tasks;
 using GlmSharp;
 
 namespace csgeom_test {
-    public class hudItem {
+    public class HUDItem {
         public readonly string name;
-        public float width { get; protected set; }
-        public float height {get; protected set; }
-        hudItem parent;
+        public float Width { get; protected set; }
+        public float Height { get; protected set; }
+        public readonly HUDBase root;
+        HUDItem parent;
 
         public float localX, localY, localZ;
 
-        public virtual float x => localX + parent.x;
-        public virtual float y => localY + parent.y;
-        public vec2 pos => new vec2(x, y);
+        public virtual float X => localX + parent.X;
+        public virtual float Y => localY + parent.Y;
+        public vec2 Pos => new vec2(X, Y);
 
-        private List<hudItem> _children;
-        public List<hudItem> children => _children.ToList();
+        private List<HUDItem> _children;
+        public List<HUDItem> Children => _children.ToList();
 
-        private Action<hudBase, mouseButton> _mouseDown;
-        public Action<hudBase, mouseButton> mouseDown {
+        private Action<HUDItem, HUDBase, MouseButton> _mouseDown;
+        public Action<HUDItem, HUDBase, MouseButton> MouseDown {
             set {
                 _mouseDown = value;
             }
         }
-        public void doMouseDown(hudBase b, mouseButton bu) {
-            if (_mouseDown != null) _mouseDown(b, bu);
+        public void DoMouseDown(HUDBase b, MouseButton bu) {
+            _mouseDown?.Invoke(this, b, bu);
         }
 
-        private Action<hudBase> _draw;
-        public Action<hudBase> draw {
+        private Action<HUDItem, HUDBase> _draw;
+        public Action<HUDItem, HUDBase> Draw {
             set {
                 _draw = value;
             }
         }
-        public void doDraw(hudBase b) {
-            if (_draw != null) _draw(b);
+        public void DoDraw(HUDBase b) {
+            _draw?.Invoke(this, b);
         }
         
-        protected void drawRecurse(hudBase b) {
-            doDraw(b);
-            foreach(hudItem child in children) {
-                child.drawRecurse(b);
+        protected void DrawRecurse(HUDBase b) {
+            DoDraw(b);
+            foreach(HUDItem child in Children) {
+                child.DrawRecurse(b);
             }
         }
 
-        public hudItem(string name, float width, float height, hudItem parent) {
+        public HUDItem(string name, float width, float height, HUDItem parent) {
             localY = 0;
             localY = 0;
-            this.width = width;
-            this.height = height;
+            this.Width = width;
+            this.Height = height;
             this.name = name;
 
+            this.root = parent.root;
             this.parent = parent;
 
-            _children = new List<hudItem>();
+            _children = new List<HUDItem>();
             if(parent != null) parent._children.Add(this);
         }
 
-        public void remove() {
+        public void Remove() {
             parent._children.Remove(this);
         }
     }
 
-    public class hudBase : hudItem {
-        public readonly hlg_font font;
-        public readonly renderPass sh;
+    public class HUDBase : HUDItem {
+        public readonly HLGfont font;
+        public readonly RenderPass sh;
 
-        public override float x => 0;
-        public override float y => 0;
+        public override float X => 0;
+        public override float Y => 0;
         /// <summary>
         ///     Returns the highest global z object that 
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <returns></returns>
-        public hudItem over(float x, float y) {
-            hudItem current = this;
+        public HUDItem Over(float x, float y) {
+            HUDItem current = this;
             while(true) {
-                hudItem next = null;
-                foreach (hudItem child in current.children) {
-                    if (x >= child.x && x < child.x + child.width && y >= child.y && y < child.y + child.height) {
+                HUDItem next = null;
+                foreach (HUDItem child in current.Children) {
+                    if (x >= child.X && x < child.X + child.Width && y >= child.Y && y < child.Y + child.Height) {
                         if(next == null) {
                             next = child;
                         } else if(child.localZ >= next.localZ) {
@@ -100,31 +102,31 @@ namespace csgeom_test {
             return current;
         }
 
-        public void click(float x, float y) {
-            hudItem item = over(x, y);
-            item.doMouseDown(this, mouseButton.left);
+        public void Click(float x, float y) {
+            HUDItem item = Over(x, y);
+            item.DoMouseDown(this, MouseButton.left);
         }
-        public void rightClick(float x, float y) {
-            hudItem item = over(x, y);
-            item.doMouseDown(this, mouseButton.right);
+        public void RightClick(float x, float y) {
+            HUDItem item = Over(x, y);
+            item.DoMouseDown(this, MouseButton.right);
         }
 
-        public void text(string text, float x, float y, float scale) {
+        public void Text(string text, float x, float y, float scale) {
             font.drawText(text, x, y, scale);
         }
 
-        public void rect(float x, float y, float width, float height, vec3 color) {
-            model m = new model(mesh.coloredRectangle(new vec2(width, height), color));
-            sh.drawModel(m, mat4.Translate(x, y, 0));
-            m.destroy();
+        public void Rect(float x, float y, float width, float height, vec3 color) {
+            Model m = new Model(Mesh.ColoredRectangle(new vec2(width, height), color));
+            sh.DrawModel(m, mat4.Translate(x, y, 0));
+            m.Destroy();
         }
 
-        public void drawAll() {
-            sh.disableDepth();
-            drawRecurse(this);
+        public void DrawAll() {
+            sh.DisableDepth();
+            DrawRecurse(this);
         }
 
-        public hudBase(hlg_font font, renderPass color) : base("base " + DateTime.UtcNow.ToLongTimeString() + " " + DateTime.UtcNow.ToLongDateString(), 2, 2, null) {
+        public HUDBase(HLGfont font, RenderPass color) : base("base " + DateTime.UtcNow.ToLongTimeString() + " " + DateTime.UtcNow.ToLongDateString(), 2, 2, null) {
             this.font = font;
             this.sh = color;
         }

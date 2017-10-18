@@ -21,17 +21,17 @@ namespace csgeom_test {
         }
 
         //glm has more support functions than csgeom vertices
-        public static vec2 glm(this csgeom.vert2 v) {
+        public static vec2 glm(this csgeom.gvec2 v) {
             return new vec2((float)v.x, (float)v.y);
         }
-        public static vec3 glm(this csgeom.vert3 v) {
+        public static vec3 glm(this csgeom.gvec3 v) {
             return new vec3((float)v.x, (float)v.y, (float)v.z);
         }
-        public static csgeom.vert2 csgeom(this vec2 v) {
-            return new csgeom.vert2 { x = v.x, y = v.y };
+        public static csgeom.gvec2 csgeom(this vec2 v) {
+            return new csgeom.gvec2 { x = v.x, y = v.y };
         }
-        public static csgeom.vert3 csgeom(this vec3 v) {
-            return new csgeom.vert3 { x = v.x, y = v.y, z = v.z };
+        public static csgeom.gvec3 csgeom(this vec3 v) {
+            return new csgeom.gvec3 { x = v.x, y = v.y, z = v.z };
         }
     }
 }

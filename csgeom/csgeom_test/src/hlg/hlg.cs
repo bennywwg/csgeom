@@ -6,32 +6,32 @@ using OpenTK.Graphics.OpenGL;
 
 namespace csgeom_test {
     
-    public class model {
-        public readonly indexBuffer indices;
+    public class Model {
+        public readonly IndexBuffer indices;
         
-        public readonly vbuffer positions;
-        public readonly vbuffer normals;
-        public readonly vbuffer uvs;
-        public readonly vbuffer colors;
-        public bool hasNormals => normals != null;
-        public bool hasUVs => uvs != null;
-        public bool hasColors => colors != null;
-        public readonly vbuffer[] genericBuffers;
-        public int bufferCount => 1 + (hasNormals ? 1 : 0) + (hasUVs ? 1 : 0) + (hasColors ? 1 : 0) + genericBuffers.Length;
-        public vbuffer[] allBuffers {
+        public readonly Vbuffer positions;
+        public readonly Vbuffer normals;
+        public readonly Vbuffer uvs;
+        public readonly Vbuffer colors;
+        public bool HasNormals => normals != null;
+        public bool HasUVs => uvs != null;
+        public bool HasColors => colors != null;
+        public readonly Vbuffer[] genericBuffers;
+        public int BufferCount => 1 + (HasNormals ? 1 : 0) + (HasUVs ? 1 : 0) + (HasColors ? 1 : 0) + genericBuffers.Length;
+        public Vbuffer[] AllBuffers {
             get {
-                vbuffer[] res = new vbuffer[bufferCount];
+                Vbuffer[] res = new Vbuffer[BufferCount];
                 res[0] = positions;
                 int current = 1;
-                if(hasNormals) {
+                if(HasNormals) {
                     res[current] = normals;
                     current++;
                 }
-                if(hasUVs) {
+                if(HasUVs) {
                     res[current] = uvs;
                     current++;
                 }
-                if(hasColors) {
+                if(HasColors) {
                     res[current] = colors;
                     current++;
                 }
@@ -43,21 +43,21 @@ namespace csgeom_test {
             }
         }
 
-        public readonly texture albedo;
-        public readonly texture bump;
-        public bool hasAlbedo => albedo != null;
-        public bool hasBump => bump != null;
-        public readonly texture[] genericTextures;
-        public int textureCount => (hasAlbedo ? 1 : 0) + (hasBump ? 1 : 0) + genericTextures.Length;
-        public texture[] allTextures {
+        public readonly Texture albedo;
+        public readonly Texture bump;
+        public bool HasAlbedo => albedo != null;
+        public bool HasBump => bump != null;
+        public readonly Texture[] genericTextures;
+        public int TextureCount => (HasAlbedo ? 1 : 0) + (HasBump ? 1 : 0) + genericTextures.Length;
+        public Texture[] AllTextures {
             get {
-                texture[] res = new texture[textureCount];
+                Texture[] res = new Texture[TextureCount];
                 int current = 0;
-                if(hasAlbedo) {
+                if(HasAlbedo) {
                     res[current] = albedo;
                     current++;
                 }
-                if(hasBump) {
+                if(HasBump) {
                     res[current] = bump;
                     current++;
                 }
@@ -70,38 +70,38 @@ namespace csgeom_test {
         }
 
 
-        void genericDraw(PolygonMode mode, float lineWidth = 1) {
-            indices.bind();
-            foreach (texture tx in allTextures) tx.bind();
-            foreach (vbuffer buf in allBuffers) buf.bindToAttrib();
+        void GenericDraw(PolygonMode mode, float lineWidth = 1) {
+            indices.Bind();
+            foreach (Texture tx in AllTextures) tx.bind();
+            foreach (Vbuffer buf in AllBuffers) buf.BindToAttrib();
 
             GL.LineWidth(lineWidth);
 
             GL.PolygonMode(MaterialFace.FrontAndBack, mode);
-            indices.drawElements();
+            indices.DrawElements();
 
-            foreach (vbuffer buf in allBuffers) buf.unbindFromAttrib();
-            foreach (texture tx in allTextures) tx.unbind();
-            indices.unbind();
+            foreach (Vbuffer buf in AllBuffers) buf.UnbindFromAttrib();
+            foreach (Texture tx in AllTextures) tx.unbind();
+            indices.Unbind();
         }
-        public void draw(PolygonMode mode = PolygonMode.Fill, float lineWidth = 1) {
-            genericDraw(mode, lineWidth);
+        public void Draw(PolygonMode mode = PolygonMode.Fill, float lineWidth = 1) {
+            GenericDraw(mode, lineWidth);
         }
 
-        private model(indexBuffer indices, vbuffer[] buffers, texture[] textures) {
+        private Model(IndexBuffer indices, Vbuffer[] buffers, Texture[] textures) {
             this.indices = indices;
 
-            List<vbuffer> otherBuffers = new List<vbuffer>();
+            List<Vbuffer> otherBuffers = new List<Vbuffer>();
             for (int i = 0; i < buffers.Length; i++) {
-                vbuffer buf = buffers[i];
+                Vbuffer buf = buffers[i];
                 if (buf != null) {//this makes life easier elsewhere
-                    if (buf.isPositionAttrib) {
+                    if (buf.IsPositionAttrib) {
                         positions = buf;
-                    } else if (buf.isNormalAttrib) {
+                    } else if (buf.IsNormalAttrib) {
                         normals = buf;
-                    } else if (buf.isUVAttrib) {
+                    } else if (buf.IsUVAttrib) {
                         uvs = buf;
-                    } else if (buf.isColorAttrib) {
+                    } else if (buf.IsColorAttrib) {
                         colors = buf;
                     } else {
                         otherBuffers.Add(buf);
@@ -111,9 +111,9 @@ namespace csgeom_test {
             if (positions == null) throw new Exception("No position buffer");
             this.genericBuffers = otherBuffers.ToArray();
 
-            List<texture> otherTextures = new List<texture>();
+            List<Texture> otherTextures = new List<Texture>();
             for (int i = 0; i < textures.Length; i++) {
-                texture tx = textures[i];
+                Texture tx = textures[i];
                 if (tx != null) {
                     if (tx.isAlbedo) {
                         albedo = tx;
@@ -127,59 +127,59 @@ namespace csgeom_test {
             this.genericTextures = otherTextures.ToArray();
         }
 
-        public model(mesh m) : this(
-            new indexBuffer(m.indexData),
-            new vbuffer[] {
-                vbuffer.positionAttrib(m.positionData),
-                m.normalData != null ? vbuffer.normalAttrib(m.normalData) : null,
-                m.uvData != null ? vbuffer.uvAttrib(m.uvData) : null,
-                m.colorData != null ? vbuffer.colorAttrib(m.colorData) : null
+        public Model(Mesh m) : this(
+            new IndexBuffer(m.IndexData),
+            new Vbuffer[] {
+                Vbuffer.PositionAttrib(m.PositionData),
+                m.NormalData != null ? Vbuffer.NormalAttrib(m.NormalData) : null,
+                m.UVData != null ? Vbuffer.UVAttrib(m.UVData) : null,
+                m.ColorData != null ? Vbuffer.ColorAttrib(m.ColorData) : null
             },
-            new texture[] { }) {
+            new Texture[] { }) {
         }
 
-        public model(mesh m, texture tx) : this(
-            new indexBuffer(m.indexData),
-            new vbuffer[] {
-                vbuffer.positionAttrib(m.positionData),
-                m.normalData != null ? vbuffer.normalAttrib(m.normalData) : null,
-                m.uvData != null ? vbuffer.uvAttrib(m.uvData) : null,
-                m.colorData != null ? vbuffer.colorAttrib(m.colorData) : null
+        public Model(Mesh m, Texture tx) : this(
+            new IndexBuffer(m.IndexData),
+            new Vbuffer[] {
+                Vbuffer.PositionAttrib(m.PositionData),
+                m.NormalData != null ? Vbuffer.NormalAttrib(m.NormalData) : null,
+                m.UVData != null ? Vbuffer.UVAttrib(m.UVData) : null,
+                m.ColorData != null ? Vbuffer.ColorAttrib(m.ColorData) : null
             },
-            new texture[] {
+            new Texture[] {
                 tx
             }) {
         }
         
-        public static void streamDraw(mesh m, shader sh, texture tx, PolygonMode mode = PolygonMode.Fill) {
-            model mv = new model(m, tx);
+        public static void StreamDraw(Mesh m, Shader sh, Texture tx, PolygonMode mode = PolygonMode.Fill) {
+            Model mv = new Model(m, tx);
             sh.use();
-            mv.draw(mode);
-            mv.destroy();
+            mv.Draw(mode);
+            mv.Destroy();
         }
 
-        public void destroy() {
-            foreach (vbuffer buf in allBuffers) buf.destroy();
-            indices.destroy();
+        public void Destroy() {
+            foreach (Vbuffer buf in AllBuffers) buf.Destroy();
+            indices.Destroy();
         }
     }
 
-    public static class modelExtensions {
-        public static model generateModel(this mesh m, texture tx = null) {
-            return new model(m, tx);
+    public static class ModelExtensions {
+        public static Model GenerateModel(this Mesh m, Texture tx = null) {
+            return new Model(m, tx);
         }
     }
     
-    public class renderPass {
+    public class RenderPass {
 
-        private shader main;
+        private Shader main;
         //private framebuffer frame;
-        private shader post;
+        private Shader post;
 
         private mat4 _view;
         private mat4 _projection;
 
-        public void beginPass(mat4 view, mat4 projection) {
+        public void BeginPass(mat4 view, mat4 projection) {
             _view = view;
             _projection = projection;
             //main.setUniform("view", view);
@@ -187,16 +187,16 @@ namespace csgeom_test {
             //main.setUniform("viewProjection", viewProjection);
         }
 
-        public void enableDepth() {
+        public void EnableDepth() {
             GL.Enable(EnableCap.DepthTest);
         }
-        public void disableDepth() {
+        public void DisableDepth() {
             GL.Disable(EnableCap.DepthTest);
         }
 
         public bool depthEnabled = true;
 
-        public void drawModel(model m, mat4 model, PolygonMode mode = PolygonMode.Fill, float lineWidth = 1) {
+        public void DrawModel(Model m, mat4 model, PolygonMode mode = PolygonMode.Fill, float lineWidth = 1) {
             main.use();
 
             float time = (float)(DateTime.UtcNow - DateTime.Today).TotalSeconds * 3.0f;
@@ -205,15 +205,15 @@ namespace csgeom_test {
 
             main.setUniform("hlg_model", model);
             //main.setUniform("hlg_mvp", _projection * _view * model);
-            if(m.hasAlbedo) main.setUniform("hlg_albedo", m.albedo.ptr);
+            if(m.HasAlbedo) main.setUniform("hlg_albedo", m.albedo.ptr);
 
-            if (depthEnabled) enableDepth(); else disableDepth();
-            m.draw(mode, lineWidth);
+            if (depthEnabled) EnableDepth(); else DisableDepth();
+            m.Draw(mode, lineWidth);
         }
 
-        public renderPass(shader main, int width, int height) : this(main, null, width, height) {
+        public RenderPass(Shader main, int width, int height) : this(main, null, width, height) {
         }
-        public renderPass(shader main, shader post, int width, int height) {
+        public RenderPass(Shader main, Shader post, int width, int height) {
             this.main = main;
             this.post = post;
 
@@ -221,13 +221,13 @@ namespace csgeom_test {
         }
     }
 
-    public static class hlg {
-        public static void drawBox(vec2 pos, vec2 size, vec3 color) {
+    public static class HLG {
+        public static void DrawBox(vec2 pos, vec2 size, vec3 color) {
 
         }
     }
 
-    public class multiPassCompositor {
+    public class MultiPassCompositor {
 
     }
 }
