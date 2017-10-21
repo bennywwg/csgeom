@@ -4,11 +4,6 @@ using OpenTK.Graphics;
 using GlmSharp;
 
 namespace csgeom_test {
-    public enum MouseButton {
-        left,
-        right
-    }
-
     public class Window {
         private readonly NativeWindow win;
         private readonly GraphicsContext ctx;
@@ -50,12 +45,30 @@ namespace csgeom_test {
             }
         }
 
-        private vec2 _mouse;
-        public vec2 Mouse {
-            get {
-                return _mouse;
+        private EventHandler<OpenTK.Input.MouseMoveEventArgs> _mouseMove;
+        public Action<OpenTK.Input.MouseMoveEventArgs> MouseMove {
+            set {
+                win.MouseMove -= _mouseMove;
+                _mouseMove = (sender, args) => value(args);
+                win.MouseMove += _mouseMove;
             }
         }
+        
+        
+        private ivec2 _mousepx;
+        public ivec2 Mousepx {
+            get {
+                return new ivec2(win.X, win.Y);
+            }
+        }
+        public vec2 Mouse {
+            get {
+                return new vec2((float)_mousepx.x / (float)Size.x * 2.0f - 1.0f, 1.0f - (float)_mousepx.y / (float)Size.y * 2.0f);
+            }
+        }
+
+        public ivec2 Position => new ivec2(win.X, win.Y);
+        public ivec2 Size => new ivec2(win.ClientRectangle.Width, win.ClientRectangle.Height);
 
         public Window(int width, int height, string title) {
             win = new NativeWindow(width, height, title, GameWindowFlags.FixedWindow, GraphicsMode.Default, DisplayDevice.Default);
@@ -65,7 +78,7 @@ namespace csgeom_test {
             ctx.LoadAll();
             win.Visible = true;
 
-            win.MouseMove += (sender, args) => _mouse = new vec2(args.X / (float)win.Width * 2 - 1, -args.Y / (float)win.Height * 2 + 1);
+            win.MouseMove += (sender, args) => _mousepx = new ivec2(args.X, args.Y);
 
             win.Closed += (sender, args) => _closed = true;
         }

@@ -184,6 +184,7 @@ namespace csgeom {
         }
 
         public TriangulationResult2 Triangulate() {
+
             //trivial check
             if (Count < 3) {
                 return new TriangulationResult2 { code = TriangulationCode.insufficientVertices };

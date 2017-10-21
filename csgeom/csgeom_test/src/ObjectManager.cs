@@ -17,18 +17,17 @@ namespace csgeom_test {
         HUDItem item;
 
         public EntityManager Union(EntityManager other) {
-            return new EntityManager(item.root) {
+            return new EntityManager(item.Root) {
                 poly = poly.Clone()
             };
         }
 
-        public void Draw() {
-            item.root.Rect(item.X, item.Y, item.Width, item.Height, new vec3(1, 1, 1));
-            item.root.sh.BeginPass
+        public void Draw(RenderPass g, HUDRect item) {
+
         }
 
         public EntityManager(HUDBase itemRoot) {
-            item = new HUDItem("Entity Manager", 1, 1, itemRoot);
+            item = new HUDItem("Entity Manager", itemRoot);
         }
     }
 }

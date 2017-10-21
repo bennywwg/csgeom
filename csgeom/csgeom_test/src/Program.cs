@@ -12,13 +12,17 @@ namespace csgeom_test {
         public static Window win;
 
         public static RenderPass ui;
+        public static RenderPass g;
 
-        public static HLGfont consolas;
+        public static Texture consolas;
 
         public static Shader colorShader;
         public static Shader shadeless;
+        public static Shader textShader;
 
         public static HUDBase hud;
+
+        public static Camera cam;
 
 
         public static void Initialize() {
@@ -32,9 +36,7 @@ namespace csgeom_test {
             Vao.Initialize();
 
             try {
-                consolas = new HLGfont("../../resources/consolas.png", "../../resources/shaders/text/s.vert", "../../resources/shaders/text/s.frag") {
-                    name = "Consolas"
-                };
+                consolas = Texture.color("../../resources/consolas.png");
                 Console.WriteLine("Consolas font loaded from consolas.png");
             } catch {
                 Console.WriteLine("Consolas font failed to load");
@@ -53,8 +55,19 @@ namespace csgeom_test {
             } catch {
                 Console.WriteLine("Shader 'shadeless' failed to load");
             }
-            
-            ui = new RenderPass(colorShader, 0, 0) {
+
+            try {
+                textShader = new Shader("../../resources/shaders/text/s.vert", "../../resources/shaders/text/s.frag");
+                Console.WriteLine("Shader 'text' loaded");
+            } catch {
+                Console.WriteLine("Shader 'text' failed to load");
+            }
+
+            g = new RenderPass() {
+                depthEnabled = true
+            };
+
+            ui = new RenderPass() {
                 depthEnabled = false
             };
         }
@@ -70,165 +83,96 @@ namespace csgeom_test {
         }
 
         public static void SetupUI() {
-            hud = new HUDBase(consolas, ui) {
-                MouseDown = (self, ba, bu) => {
-                    if (bu == MouseButton.left) {
-                        poly.verts.Add(new csgeom.gvec2 { x = win.Mouse.x, y = win.Mouse.y });
-                    } else {
-                        currentHole.Add(new csgeom.gvec2 { x = win.Mouse.x, y = win.Mouse.y });
-                    }
-                },
-                Draw = (self, ba) => {
-                    for (int i = 0; i < poly.verts.Count; i++) {
-                        vec2 pos = poly.verts[i].glm();
-                        //ba.text(i.ToString(), pos.x - i.ToString().Length * 0.0125f, pos.y - 0.025f, 0.05f);
-                    }
+            hud = new HUDBase(win);
+
+            win.MouseDown = new Action<OpenTK.Input.MouseButtonEventArgs>(ev => {
+                hud.DoMouseDown(ev);
+            });
+
+            win.MouseUp = new Action<OpenTK.Input.MouseButtonEventArgs>(ev => {
+                hud.DoMouseUp(ev);
+            });
+
+            win.KeyDown = new Action<OpenTK.Input.KeyboardKeyEventArgs>(ev => {
+                if (ev.Key == OpenTK.Input.Key.Escape) {
+                    win.Close();
+                    return;
                 }
+                hud.DoKeyDown(ev);
+            });
+
+            win.KeyUp = new Action<OpenTK.Input.KeyboardKeyEventArgs>(ev => {
+                hud.DoKeyUp(ev);
+            });
+
+            win.MouseMove = new Action<OpenTK.Input.MouseMoveEventArgs>(ev => {
+
+            });
+
+            cam = new Camera() {
+                ncp = 0.01f,
+                fcp = 1000.0f,
+                fov = 90.0f
             };
 
-            HUDItem clearAllButton = new HUDItem("clear selection", 0.3f, 0.1f, b) {
-                localX = -1,
-                localY = -0.9f
-            };
-            clearAllButton.Draw = (self, ba) => {
-                ba.Rect(self.X, self.Y, 0.3f, 0.1f, new vec3(0.3f, 0.3f, 0.3f));
-                ba.Text("clear", self.X, self.Y, 0.08f);
-            };
-            clearAllButton.MouseDown = (self, ba, bu) => {
-                poly.verts.Clear();
-                poly.holes.Clear();
-                currentHole = new csgeom.LineLoop2();
-            };
+            HUDCameraController cameraRotater = new HUDCameraController("Camera Controller", hud);
 
-            HUDItem holeButton = new HUDItem("next hole", 0.45f, 0.1f, b) {
-                localX = -1,
-                localY = -0.8f
-            };
-            holeButton.Draw = (self, ba) => {
-                ba.Rect(self.X, self.Y, self.Width, self.Height, new vec3(0.3f, 0.3f, 0.3f));
-                ba.Text("next hole", self.X, self.Y, 0.08f);
-            };
-            holeButton.MouseDown = (self, ba, bu) => {
-                poly.holes.Add(currentHole);
-                currentHole = new csgeom.LineLoop2();
-            };
-
-            int index = 0;
-
-            HUDItem nextButton = new HUDItem("next", 0.45f, 0.1f, b) {
-                localX = -1,
-                localY = -0.6f
-            };
-            nextButton.Draw = (self, ba) => {
-                ba.Rect(self.X, self.Y, self.Width, self.Height, new vec3(0.3f, 0.3f, 0.3f));
-                ba.Text("next", self.X, self.Y, 0.08f);
-            };
-            nextButton.MouseDown = (self, ba, bu) => {
-                index++;
-            };
-            HUDItem prevButton = new HUDItem("prev", 0.45f, 0.1f, b) {
-                localX = -1,
-                localY = -0.7f
-            };
-            prevButton.Draw = (self, ba) => {
-                ba.Rect(self.X, self.Y, self.Width, self.Height, new vec3(0.3f, 0.3f, 0.3f));
-                ba.Text("prev", self.X, self.Y, 0.08f);
-            };
-            prevButton.MouseDown = (self, ba, bu) => {
-                index--;
-            };
+            HUDGeom ge = new HUDGeom("Geometry Interface", hud);
         }
 
 
 
-        public static void Main(string[] args) {
-            
-            
-            double lastTime = 0.0;
-
-
-
-            csgeom.WeaklySimplePolygon poly = new csgeom.WeaklySimplePolygon();
-            csgeom.LineLoop2 currentHole = new csgeom.LineLoop2();
-            csgeom.TriangulationCode code = csgeom.TriangulationCode.insufficientVertices;
-            
+        public static void Main(string[] stdin) {
+            Initialize();
+            SetupUI();
 
             
 
-            win.MouseDown = new Action<OpenTK.Input.MouseButtonEventArgs>(ev => {
-                if (ev.Button == OpenTK.Input.MouseButton.Left) {
-                    b.Click(win.Mouse.x, win.Mouse.y);
-                } else {
-                    b.RightClick(win.Mouse.x, win.Mouse.y);
+            for (int i = 0; i < 4; i++) {
+                for (int u = 0; u < 4; u++) {
+                    HUDRect test = new HUDRect("test", hud) {
+                        Color = util.RGB(128, 50, 50),
+                        LocalPos = new vec2(-0.05f + i * 0.25f, -0.05f + u * 0.25f),
+                        Size = new vec2(0.1f, 0.1f),
+                        Text = "Text"
+                    };
                 }
-            });
+            }
+
+
+            cam.Position.z = 1;
+            //cam.AngleY = 00.0f / 180.0f * (float)Math.PI;
+
+            double lastDelaT = 0;
 
             while (!win.Closed) {
-                GL.ClearColor(142.0f/511.0f, 188.0f/511.0f, 229.0f/511.0f, 1.0f);
+
+                Stopwatch st = Stopwatch.StartNew();
+
+                hud.Update((float)lastDelaT * 1000);
+
+
+                //cam.AngleY += ((float)Math.PI * 2) * 0.01f;
+                //cam.Position.x += (1 ) * 0.01f;
+
+                g.pv = cam.ViewProjection;
+                //cam.Position += cam.Direction * 0.01f;
+                
+                
+
 
                 GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-                GL.Enable(EnableCap.DepthTest);
 
-                Stopwatch sw = Stopwatch.StartNew();
-                csgeom.LineLoop2 spoly = poly.Simplify();
-                csgeom.TriangulationResult2 res = spoly.Triangulate();
-                lastTime = (sw.ElapsedTicks / (double)Stopwatch.Frequency);
-
-                Console.Clear();
-                code = res.code;
-                Console.WriteLine("Triangulation took " + ((int)(lastTime * 100000)) / 100.0 + " ms");
-                Console.WriteLine("Status: " + code.ToString());
-                Console.WriteLine("Area: " + poly.verts.Area);
-
-                code = res.code;
-
-                List<vec2[]> edges = new List<vec2[]>();
-                List<vec2[]> edgesAll = new List<vec2[]>();
-                List<vec2> glms = spoly.Data().Select(vert => vert.glm()).ToList();
-                for (int i = 0; i < glms.Count; i++) {
-                    if (i == index) edges.Add(new vec2[] { glms[i], glms[i], glms[(i + 1) % glms.Count]});
-                    edgesAll.Add(new vec2[] { glms[i], glms[i], glms[(i + 1) % glms.Count] });
-                }
-
-                if (glms.Count != 0) {
-                    if (index < 0) index = (index + glms.Count) % glms.Count;
-                    if (index >= glms.Count) index = index % glms.Count;
-                }
-
-                Random r = new Random(5);
-
-                if (res.data != null) {
-                    Mesh tri = new Mesh(MeshComponent.colors);
-                    tri.RandomColoredTriangles(res.data.Select(ts => new vec2[] { ts.v0.glm(), ts.v1.glm(), ts.v2.glm() }).ToList());
-                    Model m = new Model(tri);
-                    ui.DrawModel(m, mat4.Identity, PolygonMode.Fill);
-                    m.Destroy();
-                }
-
-
-                Mesh edgeMeshAll = new Mesh(MeshComponent.colors);
-                edgeMeshAll.Triangles(edgesAll, vec3.Zero);
-                Model edgeModelAll = new Model(edgeMeshAll);
-                ui.DrawModel(edgeModelAll, mat4.Identity, PolygonMode.Line);
-                edgeModelAll.Destroy();
-
-                Mesh edgeMesh = new Mesh(MeshComponent.colors);
-                edgeMesh.Triangles(edges, vec3.Ones);
-                Model edgeModel = new Model(edgeMesh);
-                ui.DrawModel(edgeModel, mat4.Identity, PolygonMode.Line, 3);
-                edgeModel.Destroy();
-
-
-                b.DrawAll();
+                hud.DrawRecurse(g);
 
                 win.Flush();
 
-                Thread.Sleep(20);
+                lastDelaT = (double)st.ElapsedMilliseconds / (double)Stopwatch.Frequency;
+
+                //Thread.Sleep(20);
             }
 
-            HLGfont.consolas.destroy();
-
-            Vao.Destroy();
+            Cleanup();
         }
     }
 }

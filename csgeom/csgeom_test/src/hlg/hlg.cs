@@ -6,6 +6,55 @@ using OpenTK.Graphics.OpenGL;
 
 namespace csgeom_test {
     
+    public struct Camera {
+        public vec3 Position;
+        public float AngleY;
+        public float AngleX;
+
+        public float ncp;
+        public float fcp;
+        public float fov;
+
+        public vec3 Direction {
+            get {
+                return new vec3(ViewRot.Inverse * new vec4(0, 0, -1, 0));
+            }
+        }
+
+        public mat4 ViewRot {
+            get {
+                return mat4.Rotate(AngleX, new vec3(1, 0, 0)) * mat4.Rotate(AngleY, new vec3(0, 1, 0));
+            }
+        }
+
+        public mat4 View {
+            get {
+                return ViewRot * mat4.Translate(-Position);
+            }
+        }
+        
+        public mat4 ViewProjection {
+            get {
+                return Projection * View;
+            }
+        }
+
+        public mat4 Projection {
+            get {
+                return mat4.Perspective(fov / 180.0f * (float)Math.PI, 1, ncp, fcp);
+            }
+        }
+
+        public vec3 getNearPoint(vec2 ss) {
+            return new vec3((mat4.Translate(Position) * ViewRot.Inverse) * new vec4(ss.x * ncp, ss.y * ncp, -ncp, 1));
+        }
+        public vec3 getFarPoint(vec2 ss) {
+
+            //Console.WriteLine(new vec3((mat4.Translate(Position)) * new vec4(ss.x * fcp, ss.y * fcp, -fcp, 1)));
+            return new vec3((mat4.Translate(Position) * ViewRot.Inverse) * new vec4(ss.x * fcp, ss.y * fcp, -fcp, 1));
+        }
+    }
+
     public class Model {
         public readonly IndexBuffer indices;
         
@@ -171,21 +220,8 @@ namespace csgeom_test {
     }
     
     public class RenderPass {
-
-        private Shader main;
-        //private framebuffer frame;
-        private Shader post;
-
-        private mat4 _view;
-        private mat4 _projection;
-
-        public void BeginPass(mat4 view, mat4 projection) {
-            _view = view;
-            _projection = projection;
-            //main.setUniform("view", view);
-            //main.setUniform("projection", projection);
-            //main.setUniform("viewProjection", viewProjection);
-        }
+        
+        public mat4 pv = mat4.Identity;
 
         public void EnableDepth() {
             GL.Enable(EnableCap.DepthTest);
@@ -196,38 +232,19 @@ namespace csgeom_test {
 
         public bool depthEnabled = true;
 
-        public void DrawModel(Model m, mat4 model, PolygonMode mode = PolygonMode.Fill, float lineWidth = 1) {
-            main.use();
+        public void DrawModel(Model m, mat4 model, Shader sh, PolygonMode mode = PolygonMode.Fill, float lineWidth = 1) {
+            sh.use();
 
             float time = (float)(DateTime.UtcNow - DateTime.Today).TotalSeconds * 3.0f;
 
-            main.setUniform("time", time);
+            sh.setUniform("time", time);
 
-            main.setUniform("hlg_model", model);
-            //main.setUniform("hlg_mvp", _projection * _view * model);
-            if(m.HasAlbedo) main.setUniform("hlg_albedo", m.albedo.ptr);
+            sh.setUniform("hlg_model", model);
+            sh.setUniform("hlg_mvp", pv * model);
+            if(m.HasAlbedo) sh.setUniform("hlg_albedo", m.albedo.ptr);
 
             if (depthEnabled) EnableDepth(); else DisableDepth();
             m.Draw(mode, lineWidth);
         }
-
-        public RenderPass(Shader main, int width, int height) : this(main, null, width, height) {
-        }
-        public RenderPass(Shader main, Shader post, int width, int height) {
-            this.main = main;
-            this.post = post;
-
-            //this.frame = new framebuffer(width, height);
-        }
-    }
-
-    public static class HLG {
-        public static void DrawBox(vec2 pos, vec2 size, vec3 color) {
-
-        }
-    }
-
-    public class MultiPassCompositor {
-
     }
 }
