@@ -96,6 +96,12 @@ namespace csgeom_test {
 
         public HUDGeom(string name, HUDItem parent) : base(name, parent) {
             loop = new LineLoop2();
+            loop.Add(new gvec2(0, 0));
+            loop.Add(new gvec2(1, 0));
+            loop.Add(new gvec2(2, 0));
+            loop.Add(new gvec2(3, 0));
+            loop.Add(new gvec2(3, 1));
+            loop.Add(new gvec2(0, 1));
         }
     }
 }
