@@ -258,6 +258,8 @@ namespace csgeom_test {
 
         public vec3 Motion = vec3.Zero;
 
+        public bool Mode = false;
+
         public override void DoMouseDown(MouseButtonEventArgs bu) {
             if (bu.Button == MouseButton.Right) {
                 CameraStart = Program.cam;
@@ -295,11 +297,19 @@ namespace csgeom_test {
         }
 
         public override void Update(float deltaT) {
-            if (panning) {
-                Program.cam.AngleY = CameraStart.AngleY + MouseStart.x - Win.Mouse.x;
-                Program.cam.AngleX = CameraStart.AngleX - (MouseStart.y - Win.Mouse.y);
+            if (Mode) {
+                if (panning) {
+                    Program.cam.AngleY = CameraStart.AngleY + MouseStart.x - Win.Mouse.x;
+                    Program.cam.AngleX = CameraStart.AngleX - (MouseStart.y - Win.Mouse.y);
+                }
+                Program.cam.Position += new vec3(Program.cam.ViewRot.Inverse * new vec4(Motion, 1)) * deltaT * 10.0f;
+            } else {
+                if (panning) {
+                    Program.cam.Position.x = CameraStart.Position.x + MouseStart.x - Win.Mouse.x;
+                    Program.cam.Position.y = CameraStart.Position.y + (MouseStart.y - Win.Mouse.y);
+                }
+                //Program.cam.Position += new vec3(Program.cam.ViewRot.Inverse * new vec4(Motion, 1)) * deltaT * 10.0f;
             }
-            Program.cam.Position += new vec3(Program.cam.ViewRot.Inverse * new vec4(Motion, 1)) * deltaT * 10.0f;
         }
 
 

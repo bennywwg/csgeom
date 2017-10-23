@@ -14,7 +14,7 @@ namespace csgeom {
                 gvec2 dir0n = dir0.Normalized;
                 gvec2 dir1n = dir1.Normalized;
 
-                if (dir0n.x.cmp(dir1n.x) && dir0n.y.cmp(dir1n.y)) return false;
+                if ((dir0n.x.cmp(dir1n.x) && dir0n.y.cmp(dir1n.y)) || (dir0n.x.cmp(-dir1n.x) && dir0n.y.cmp(-dir1n.y))) return false;
             }
             
 
