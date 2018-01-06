@@ -119,10 +119,17 @@ namespace csgeom_test {
         }
 
 
-        void GenericDraw(PolygonMode mode, float lineWidth = 1) {
+        void GenericDraw(PolygonMode mode, float lineWidth = 1, bool blend = false) {
             indices.Bind();
             foreach (Texture tx in AllTextures) tx.bind();
             foreach (Vbuffer buf in AllBuffers) buf.BindToAttrib();
+
+            if (blend) {
+                GL.Enable(EnableCap.Blend);
+                GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.One);
+            } else {
+                GL.Disable(EnableCap.Blend);
+            }
 
             GL.LineWidth(lineWidth);
 
@@ -133,8 +140,8 @@ namespace csgeom_test {
             foreach (Texture tx in AllTextures) tx.unbind();
             indices.Unbind();
         }
-        public void Draw(PolygonMode mode = PolygonMode.Fill, float lineWidth = 1) {
-            GenericDraw(mode, lineWidth);
+        public void Draw(PolygonMode mode = PolygonMode.Fill, float lineWidth = 1, bool blend = false) {
+            GenericDraw(mode, lineWidth, blend);
         }
 
         private Model(IndexBuffer indices, Vbuffer[] buffers, Texture[] textures) {
@@ -232,7 +239,7 @@ namespace csgeom_test {
 
         public bool depthEnabled = true;
 
-        public void DrawModel(Model m, mat4 model, Shader sh, PolygonMode mode = PolygonMode.Fill, float lineWidth = 1) {
+        public void DrawModel(Model m, mat4 model, Shader sh, PolygonMode mode = PolygonMode.Fill, float lineWidth = 1, bool blend = false) {
             sh.use();
 
             float time = (float)(DateTime.UtcNow - DateTime.Today).TotalSeconds * 3.0f;
@@ -244,7 +251,7 @@ namespace csgeom_test {
             if(m.HasAlbedo) sh.setUniform("hlg_albedo", m.albedo.ptr);
 
             if (depthEnabled) EnableDepth(); else DisableDepth();
-            m.Draw(mode, lineWidth);
+            m.Draw(mode, lineWidth, blend);
         }
     }
 }

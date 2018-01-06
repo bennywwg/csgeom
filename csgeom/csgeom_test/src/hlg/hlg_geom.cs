@@ -252,7 +252,7 @@ namespace csgeom_test {
             );
             return res;
         }
-        public static Mesh Text(string text, float x, float y, float scale = 0.2f, float charWidth = 0.5f) {
+        public static Mesh Text(string text, float x, float y, float scale = 0.2f, float charWidth = 0.3f, float charHeight = 0.6f) {
             Mesh res = new Mesh(MeshComponent.uvs);
             
             float xFactor = scale * charWidth;

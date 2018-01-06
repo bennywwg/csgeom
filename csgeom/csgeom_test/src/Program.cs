@@ -36,8 +36,8 @@ namespace csgeom_test {
             Vao.Initialize();
 
             try {
-                consolas = Texture.color("../../resources/consolas.png");
-                Console.WriteLine("Consolas font loaded from consolas.png");
+                consolas = Texture.color("../../resources/consolas1.bmp");
+                Console.WriteLine("Consolas font loaded from consolas1.bmp");
             } catch {
                 Console.WriteLine("Consolas font failed to load");
             }
@@ -106,7 +106,7 @@ namespace csgeom_test {
             });
 
             win.MouseMove = new Action<OpenTK.Input.MouseMoveEventArgs>(ev => {
-
+                
             });
 
             cam = new Camera() {
@@ -126,19 +126,6 @@ namespace csgeom_test {
             Initialize();
             SetupUI();
 
-            
-
-            for (int i = 0; i < 4; i++) {
-                for (int u = 0; u < 4; u++) {
-                    HUDRect test = new HUDRect("test", hud) {
-                        Color = util.RGB(128, 50, 50),
-                        LocalPos = new vec2(-0.05f + i * 0.25f, -0.05f + u * 0.25f),
-                        Size = new vec2(0.1f, 0.1f),
-                        Text = "Text"
-                    };
-                }
-            }
-
 
             cam.Position.z = 1;
             //cam.AngleY = 00.0f / 180.0f * (float)Math.PI;
@@ -149,7 +136,7 @@ namespace csgeom_test {
 
                 Stopwatch st = Stopwatch.StartNew();
 
-                hud.Update((float)lastDelaT * 1000);
+                hud.Update((float)lastDelaT * 1000, win.Mouse);
 
 
                 //cam.AngleY += ((float)Math.PI * 2) * 0.01f;
@@ -157,19 +144,17 @@ namespace csgeom_test {
 
                 g.pv = cam.ViewProjection;
                 //cam.Position += cam.Direction * 0.01f;
-                
-                
 
 
+
+                GL.ClearColor(1, 1, 1, 1);
                 GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-                hud.DrawRecurse(g);
+                hud.DrawRecurse();
 
                 win.Flush();
 
-                lastDelaT = (double)st.ElapsedMilliseconds / (double)Stopwatch.Frequency;
-
-                //Thread.Sleep(20);
+                lastDelaT = st.ElapsedMilliseconds / (double)Stopwatch.Frequency;
             }
 
             Cleanup();

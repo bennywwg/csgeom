@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace csgeom {
 #pragma warning disable IDE1006 // Naming Styles
-    public struct gvec2 {
+    public struct gvec2 : IEquatable<gvec2> {
 #pragma warning restore IDE1006 // Naming Styles
         public double x, y;
 
@@ -57,6 +57,9 @@ namespace csgeom {
             return new gvec2 { x = -rhs.x, y = -rhs.y };
         }
 
+        public static bool operator ==(gvec2 lhs, gvec2 rhs) => lhs.Equals(rhs);
+        public static bool operator !=(gvec2 lhs, gvec2 rhs) => !(lhs == rhs);
+
         public gvec2(double x, double y) {
             this.x = x;
             this.y = y;
@@ -64,6 +67,15 @@ namespace csgeom {
 
         public override string ToString() {
             return "<" + x.ToString("#####0.00") + "," + y.ToString("#####0.00") + ">";
+        }
+
+        public override bool Equals(object obj) {
+            return obj is gvec2 && Equals((gvec2)obj);
+        }
+
+        public bool Equals(gvec2 other) {
+            return x == other.x &&
+                   y == other.y;
         }
     }
 

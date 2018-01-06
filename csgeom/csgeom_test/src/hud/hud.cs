@@ -11,8 +11,10 @@ namespace csgeom_test {
     public class HUDItem {
         public readonly Window Win;
         public readonly string Name;
-        public readonly HUDBase Root;
+        public HUDBase Root;
         public readonly HUDItem Parent;
+
+        public float TextUnit => (float)(512.0 / 16.0 / Win.Size.y * 2);
 
         readonly List<HUDItem> _children;
         public List<HUDItem> Children => _children.ToList();
@@ -28,19 +30,27 @@ namespace csgeom_test {
         }
 
         public virtual bool Hitbox(vec2 point) => false;
+        public HUDItem Over(vec2 point) {
+            foreach(HUDItem child in Children) {
+                HUDItem found = child.Over(point);
+                if (found != null) return found;
+            }
+            if (Hitbox(point)) return this;
+            return null;
+        }
 
         public virtual void Update(float deltaT) {
         }
 
-        public virtual void DoDraw(RenderPass g) {
+        public virtual void DoDraw() {
         }
         
-        public void DrawRecurse(RenderPass g) {
+        public void DrawRecurse() {
             foreach (HUDItem child in Children) {
-                child.DoDraw(g);
+                child.DoDraw();
             }
             foreach (HUDItem child in Children) {
-                child.DrawRecurse(g);
+                child.DrawRecurse();
             }
         }
         public List<HUDItem> AllSubChildren {
@@ -69,15 +79,45 @@ namespace csgeom_test {
         }
     }
 
+    public enum AlignMode {
+        leftAlign = 0,
+        rightAlign = 1,
+        //horizontalCenter = 4,
+        bottomAlign = 0,
+        topAlign = 2,
+        //verticalCenter = 32
+    }
+
     public class HUDRect : HUDItem {
-        public vec2 Size;
+        public AlignMode mode = AlignMode.bottomAlign | AlignMode.leftAlign;
         public vec2 LocalPos;
         public vec2 Pos => (Parent is HUDRect) ? (Parent as HUDRect).Pos + LocalPos : LocalPos;
-        public vec3 Color = util.White;
+        public vec3 Color = Util.White;
         public string Text = "";
+        public float CharHeight => TextUnit;
+        public float CharWidth => CharHeight * 0.3f;
+        public float TotalWidth => CharWidth * Text.Length;
+
+        public vec2 LowerLeftPos {
+            get {
+                float x = 0;
+                float y = 0;
+                if ((mode & AlignMode.rightAlign) != 0) {
+                    x = Pos.x - TotalWidth;
+                } else {
+                    x = Pos.x;
+                }
+                if ((mode & AlignMode.topAlign) != 0) {
+                    y = Pos.y - CharHeight;
+                } else {
+                    y = Pos.y;
+                }
+                return new vec2(x, y);
+            }
+        }
 
         public override bool Hitbox(vec2 point) {
-            return point.x > Pos.x && point.y > Pos.y && point.x < Pos.x + Size.x && point.y < Pos.y + Size.y;
+            return point.x > LowerLeftPos.x && point.y > LowerLeftPos.y && point.x < LowerLeftPos.x + TotalWidth && point.y < LowerLeftPos.y + CharHeight;
         }
 
         private Action<HUDRect, MouseButtonEventArgs> _mouseDown;
@@ -120,18 +160,33 @@ namespace csgeom_test {
             _keyUp?.Invoke(this, args);
         }
 
-        public override void DoDraw(RenderPass g) {
-            Model m = new Model(Mesh.ColoredRectangle(Size, Color));
-            g.DrawModel(m, mat4.Translate(Pos.x, Pos.y, 0), Program.colorShader);
-            m.Destroy();
+        private Action<HUDRect, float> _update;
+        public Action<HUDRect, float> DynamicUpdate {
+            set {
+                _update = value;
+            }
+        }
+
+        public override void Update(float deltaT) {
+            _update?.Invoke(this, deltaT);
+        }
+
+        public override void DoDraw() {
             if (Text.Length != 0) {
-                Model t = new Model(Mesh.Text(Text, 0, 0, Size.x), Program.consolas);
-                Program.g.DrawModel(t, mat4.Translate(Pos.x, Pos.y, 0.01f), Program.textShader);
+                Model m = new Model(Mesh.ColoredRectangle(new vec2(TotalWidth, CharHeight), Color));
+                Program.ui.DrawModel(m, mat4.Translate(LowerLeftPos.x, LowerLeftPos.y, 0), Program.colorShader);
+                m.Destroy();
+                Model t = new Model(Mesh.Text(Text, 0, 0, CharHeight), Program.consolas);
+                Program.ui.DrawModel(t, mat4.Translate(LowerLeftPos.x, LowerLeftPos.y, 0.01f), Program.textShader, OpenTK.Graphics.OpenGL.PolygonMode.Fill, 1, true);
                 t.Destroy();
             }
         }
 
         public HUDRect(string name, HUDItem parent) : base(name, parent) {
+        }
+
+        public override string ToString() {
+            return Name + ": " + Text;
         }
     }
 
@@ -140,14 +195,14 @@ namespace csgeom_test {
 
         public override bool Hitbox(vec2 point) => false;
 
-        private Action<HUDDynamic, RenderPass> _draw;
-        private Action<HUDDynamic, RenderPass> Draw {
+        private Action<HUDDynamic> _draw;
+        private Action<HUDDynamic> Draw {
             set {
                 _draw = value;
             }
         }
-        public override void DoDraw(RenderPass g) {
-            _draw?.Invoke(this, g);
+        public override void DoDraw() {
+            _draw?.Invoke(this);
         }
 
         private Action<HUDDynamic, MouseButtonEventArgs> _mouseDown;
@@ -195,29 +250,11 @@ namespace csgeom_test {
     }
 
     public class HUDBase : HUDItem {
-        HUDItem _focused;
-        public HUDItem Focused => _focused;
-
-        public HUDItem Over(vec2 pos) {
-            HUDItem current = this;
-            while(true) {
-                HUDItem next = null;
-                foreach (HUDItem child in current.Children) {
-                    if(child.Hitbox(pos)) {
-                        next = child;
-                    }
-                }
-                if(next != null) {
-                    current = next;
-                } else {
-                    break;
-                }
-            }
-            return current;
-        }
+        HUDItem _hovered;
+        public HUDItem Hovered => _hovered;
         
         public override void DoMouseDown(MouseButtonEventArgs bu) {
-            _focused = Over(Win.Mouse);
+            _hovered = Over(Win.Mouse);
             foreach (HUDItem item in AllSubChildren) {
                 item.DoMouseDown(bu);
             }
@@ -241,13 +278,19 @@ namespace csgeom_test {
             }
         }
 
-        public override void Update(float deltaT) {
+        public void UpdateHovered(vec2 pos) {
+            _hovered = Over(pos);
+        }
+
+        public void Update(float deltaT, vec2 mousePos) {
+            UpdateHovered(mousePos);
             foreach (HUDItem child in AllSubChildren) child.Update(deltaT);
         }
 
         public override bool Hitbox(vec2 point) => true;
 
         public HUDBase(Window win) : base(win, "base " + DateTime.UtcNow.ToLongTimeString() + " " + DateTime.UtcNow.ToLongDateString(), null, null, new List<HUDItem>()) {
+            Root = this;
         }
     }
 
@@ -259,6 +302,8 @@ namespace csgeom_test {
         public vec3 Motion = vec3.Zero;
 
         public bool Mode = false;
+
+        HUDRect coords;
 
         public override void DoMouseDown(MouseButtonEventArgs bu) {
             if (bu.Button == MouseButton.Right) {
@@ -310,10 +355,23 @@ namespace csgeom_test {
                 }
                 //Program.cam.Position += new vec3(Program.cam.ViewRot.Inverse * new vec4(Motion, 1)) * deltaT * 10.0f;
             }
+
+            UpdateOverlay();
+        }
+
+        void UpdateOverlay() {
+            string coordsText = "<" + Program.cam.Position.x.Round(1) + "," + Program.cam.Position.y.Round(1) + ">";
+            coords.Text = coordsText;
         }
 
 
         public HUDCameraController(string name, HUDItem parent) : base(name, parent) {
+            coords = new HUDRect("coords", this) {
+                Color = Util.Color(30, 0, 0),
+                mode = AlignMode.rightAlign | AlignMode.bottomAlign,
+                LocalPos = new vec2(1, -1)
+            };
+
         }
     }
 }

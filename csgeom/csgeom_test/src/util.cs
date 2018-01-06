@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using GlmSharp;
 
 namespace csgeom_test {
-    public static class util {
+    public static class Util {
         public static bool powerOf2(this ulong x) {
             return (x != 0) && ((x & (x - 1)) == 0);
         }
@@ -34,17 +34,59 @@ namespace csgeom_test {
             return new csgeom.gvec3 { x = v.x, y = v.y, z = v.z };
         }
 
-        public static vec3 RGB(int r, int g, int b) {
+        public static vec3 Color(string hex) {
+            if(hex.StartsWith("#")) hex = hex.Remove(0, 1);
+            int len = hex.Length <= 3 ? 3 : 6;
+            hex = hex.PadRight(len, '0');
+            if(hex.Length > 6) hex = hex.Remove(len);
+            if (len == 3) {
+                return Color(
+                    int.Parse(hex.Substring(0, 1), System.Globalization.NumberStyles.HexNumber),
+                    int.Parse(hex.Substring(1, 1), System.Globalization.NumberStyles.HexNumber),
+                    int.Parse(hex.Substring(2, 1), System.Globalization.NumberStyles.HexNumber)
+                );
+            } else {
+                return Color(
+                    int.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber),
+                    int.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber),
+                    int.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber)
+                );
+            }
+        }
+        //public static vec3 Color(int hex) {
+        //    # cee3f8
+        //}
+        public static vec3 Color(int r, int g, int b) {
             return new vec3(r / 255.0f, g / 255.0f, b / 255.0f);
         }
         public static vec3 Gray(float brightness) {
             return new vec3(brightness);
         }
-        public static readonly vec3 Red     = RGB(255, 0, 0);
-        public static readonly vec3 Green   = RGB(0, 255, 0);
-        public static readonly vec3 Blue    = RGB(0, 0, 255);
-        public static readonly vec3 White   = RGB(255, 255, 255);
-        public static readonly vec3 Black   = RGB(0, 0, 0);
+        public static readonly vec3 Red     = Color(255, 0, 0);
+        public static readonly vec3 Green   = Color(0, 255, 0);
+        public static readonly vec3 Blue    = Color(0, 0, 255);
+        public static readonly vec3 White   = Color(255, 255, 255);
+        public static readonly vec3 Black   = Color(0, 0, 0);
+
+        public static int IntPow(int x, uint pow) {
+            int ret = 1;
+            while (pow != 0) {
+                if ((pow & 1) == 1)
+                    ret *= x;
+                x *= x;
+                pow >>= 1;
+            }
+            return ret;
+        }
+
+        public static string Round(this double value, int decimals) {
+            int mul = IntPow(10, (uint)decimals);
+            return ((int)(value * mul) / (double)mul).ToString();
+        }
+        public static string Round(this float value, int decimals) {
+            int mul = IntPow(10, (uint)decimals);
+            return ((int)(value * mul) / (float)mul).ToString();
+        }
 
         public struct Plane {
             //of the form ax + by + cz = d
@@ -105,6 +147,13 @@ namespace csgeom_test {
                     c = cross.z,
                     d = vec3.Dot(cross, v0)
                 };
+            }
+        }
+
+        public static void Transform(this csgeom.LineLoop2 loop, dmat4 transform) {
+            for (int i = 0; i < loop.Count; i++) {
+                dvec2 tmp = new dvec2(transform * new dvec4(loop[i].x, loop[i].y, 0, 1));
+                loop[i] = new csgeom.gvec2(tmp.x, tmp.y);
             }
         }
     }

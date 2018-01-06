@@ -72,7 +72,7 @@ namespace csgeom_test {
 
         public Window(int width, int height, string title) {
             win = new NativeWindow(width, height, title, GameWindowFlags.FixedWindow, GraphicsMode.Default, DisplayDevice.Default);
-            ctx = new GraphicsContext(GraphicsMode.Default, win.WindowInfo, 4, 4, GraphicsContextFlags.Default);
+            ctx = new GraphicsContext(new GraphicsMode(32, 24, 0, 8), win.WindowInfo, 4, 4, GraphicsContextFlags.Default);
 
             ctx.MakeCurrent(win.WindowInfo);
             ctx.LoadAll();
@@ -87,13 +87,15 @@ namespace csgeom_test {
             if (!Closed) {
                 ctx.SwapBuffers();
                 win.ProcessEvents();
+            } else {
+                ctx.Dispose();
+                win.Close();
+                win.Dispose();
             }
         }
 
         public void Close() {
-            ctx.Dispose();
-            win.Close();
-            win.Dispose();
+            _closed = true;
         }
     }
 }

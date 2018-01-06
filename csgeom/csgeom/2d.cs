@@ -168,7 +168,38 @@ namespace csgeom {
             }
             return false;
         }
+        public List<KeyValuePair<int, gvec2>> AllIntersectionsBySegment(gvec2 p0, gvec2 p1) {
+            List<KeyValuePair<int, gvec2>> res = new List<KeyValuePair<int, gvec2>>();
+            for (int i = 0; i < Count; i++) {
+                gvec2 this0 = this[i];
+                gvec2 this1 = this[(i + 1) % Count];
+                gvec2 intersection = new gvec2();
+                if(Math2.SegmentsIntersecting(p0, p1, this0, this1, ref intersection)) {
+                    res.Add(new KeyValuePair<int, gvec2>(i, intersection));
+                }
+            }
+            return res;
+        }
+        public List<Tuple<int, bool, double, gvec2>> AllIntersectionsByParameter(gvec2 p0, gvec2 p1) {
+            //index, in/out, parameter, position
+            List<Tuple<int, bool, double, gvec2>> res = new List<Tuple<int, bool, double, gvec2>>();
+            for (int i = 0; i < Count; i++) {
+                gvec2 this0 = this[i];
+                gvec2 this1 = this[(i + 1) % Count];
+                gvec2 intersection = new gvec2();
+                double t0 = 0, t1 = 0;
+                if (Math2.SegmentsIntersecting(p0, p1, this0, this1, ref intersection, ref t0, ref t1)) {
+                    gvec2 a = p1 - p0;
+                    gvec2 b = this1 - this0;
+                    res.Add(new Tuple<int, bool, double, gvec2>(i, a.y * b.x - a.x * b.y > 0, t0, intersection));
+                }
+            }
+            return res.OrderByDescending(tuple => -tuple.Item3).ToList();
+        }
 
+        public void Reverse() {
+            data.Reverse();
+        }
         public LineLoop2 Reversed() {
             List<gvec2> rev = data.ToList();
             rev.Reverse();
@@ -265,7 +296,7 @@ namespace csgeom {
         public LineLoop2(IEnumerable<gvec2> data) : this((data != null) ? data.ToList() : new List<gvec2>(), true, 0) {
         }
     }
-
+    
     public class WeaklySimplePolygon {
         public LineLoop2 verts;
         public List<LineLoop2> holes;
@@ -283,6 +314,27 @@ namespace csgeom {
                 }
             }
             return false;
+        }
+
+        struct vref {
+            public int loop;
+            public int index;
+
+            public double param;
+            public gvec2 pos;
+        }
+
+        public WeaklySimplePolygon Union(WeaklySimplePolygon other) {
+            
+
+
+            Tuple<int, int>[] ignored0 = new Tuple<int, int>[verts.Count], ignored1 = new Tuple<int, int>[other.verts.Count];
+            for (int i = 0; i < ignored0.Length; i++) ignored0[i] = new Tuple<int, int>(-1, -1);
+            for (int i = 0; i < ignored1.Length; i++) ignored1[i] = new Tuple<int, int>(-1, -1);
+            while(true) {
+
+            }
+            return null;
         }
 
         public WeaklySimplePolygon Clone() {
@@ -311,7 +363,7 @@ namespace csgeom {
 
                 //we have go into each loop including the main loop at index 0 
                 for (int loopIndex = 0; loopIndex < remainingLoops.Count; loopIndex++) {
-                    if (loopIndex == 1) continue;
+                    if (loopIndex == 1) continue; //
 
                     LineLoop2 loop = remainingLoops[loopIndex];
 
