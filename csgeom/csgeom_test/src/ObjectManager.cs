@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using csgeom;
+using CSGeom.D2;
 using GlmSharp;
 
 namespace csgeom_test {

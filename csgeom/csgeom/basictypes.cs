@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace csgeom {
+namespace CSGeom {
 #pragma warning disable IDE1006 // Naming Styles
     public struct gvec2 : IEquatable<gvec2> {
 #pragma warning restore IDE1006 // Naming Styles

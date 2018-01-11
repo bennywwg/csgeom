@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace csgeom {
+namespace CSGeom {
     public static class Math2 {
         public static bool SegmentsIntersecting(gvec2 p0, gvec2 p1, gvec2 pa, gvec2 pb, ref gvec2 intersection) {
             gvec2 dir0 = p1 - p0;

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace csgeom {
+namespace CSGeom {
     public struct Plane {
         //of the form ax + by + cz = d
         //|<a, b, c>| will be 1 unless the plane is degenerate

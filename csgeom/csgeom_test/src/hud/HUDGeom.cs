@@ -5,12 +5,12 @@ using System.Text;
 using System.Threading.Tasks;
 
 using GlmSharp;
-using csgeom;
+using CSGeom;
+using CSGeom.D2;
 using OpenTK.Input;
 
 namespace csgeom_test {
     class HUDGeom : HUDItem {
-
         public WeaklySimplePolygon poly;
 
         public bool Dragging { get; private set; }
@@ -21,7 +21,6 @@ namespace csgeom_test {
         Model outlineCache;
 
         HUDRect ClearButton;
-        HUDRect TransformTools;
         HUDRect GeomInfo;
         HUDRect ToggleSolid;
         HUDRect GeomResultInfo;
@@ -30,6 +29,8 @@ namespace csgeom_test {
 
         void DrawCursor() {
             vec3 pos = new vec3();
+
+
 
             if (CastCursor(ref pos)) {
                 Model m = new Model(Mesh.ColoredRectangle(new vec2(0.05f, 0.05f), new vec3(0, 0, 1)));
@@ -42,6 +43,20 @@ namespace csgeom_test {
 
         void DrawGeom() {
             Random r = new Random(5);
+
+
+            float inc = 0.02f;
+
+            Mesh m = Mesh.ColoredRectangle(new vec2(inc, inc), new vec3(1.0f, 0.0f, 0.0f));
+            Model sm = new Model(m);
+
+            for (float x = -1; x < 1; x += inc) {
+                for (float y = -1; y < 1; y += inc) {
+                    if(poly.verts.IsInside(new gvec2(x + inc/2f, y + inc/2f))) Program.g.DrawModel(sm, mat4.Translate(x, y, 0f), Program.colorShader);
+                }
+            }
+
+            sm.Destroy();
 
             if (solidCache != null && RenderSolid) {
                 Program.g.DrawModel(solidCache, mat4.Identity, Program.colorShader);
@@ -101,6 +116,10 @@ namespace csgeom_test {
                 outlineCache.Destroy();
                 outlineCache = null;
             }
+        }
+
+        public override bool Hitbox(vec2 point) {
+            return poly.verts.IsInside(point.csgeom());
         }
 
         public override void DoMouseDown(MouseButtonEventArgs bu) {
@@ -208,7 +227,7 @@ namespace csgeom_test {
                         p1.verts.Add(new gvec2(0, 1));
                         p1.verts.Transform(dmat4.Translate(-0.5, -0.5, 0));
 
-                        poly = poly.Union(p1);
+                        //poly = poly.Union(p1);
 
                         Console.WriteLine("abc");
 

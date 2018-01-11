@@ -27,7 +27,7 @@ namespace csgeom_test {
 
         public static void Initialize() {
             try {
-                win = new Window(900, 900, "Circles");
+                win = new Window(750, 750, "Circles");
                 Console.WriteLine("Window initialized with OpenGL version 3.3");
             } catch {
                 Console.WriteLine("Window failed to initialize");
@@ -132,7 +132,11 @@ namespace csgeom_test {
 
             double lastDelaT = 0;
 
+            int count = 0;
+            Stopwatch outer = Stopwatch.StartNew();
+
             while (!win.Closed) {
+                count++;
 
                 Stopwatch st = Stopwatch.StartNew();
 
@@ -155,6 +159,12 @@ namespace csgeom_test {
                 win.Flush();
 
                 lastDelaT = st.ElapsedMilliseconds / (double)Stopwatch.Frequency;
+
+                if(outer.ElapsedMilliseconds > 1000) {
+                    Console.WriteLine(count);
+                    count = 0;
+                    outer = Stopwatch.StartNew();
+                }
             }
 
             Cleanup();

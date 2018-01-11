@@ -1,13 +1,22 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL;
 using GlmSharp;
 
 namespace csgeom_test {
     public class Shader {
+        public bool VertexGood => VertexLog.Length == 0;
+        public bool FragmentGood => FragmentLog.Length == 0;
+        public bool ProgramGood => ProgramLog.Length == 0;
+
+        public string VertexLog { get; private set; }
+        public string FragmentLog { get; private set; }
+        public string ProgramLog { get; private set; }
+
         private int _ptr;
         public int ptr => _ptr;
 
-        private Dictionary<string, int> _uniformMap;
+        private readonly Dictionary<string, int> _uniformMap;
 
         private void loadFile(string vertPath, string fragPath) {
             //load source
@@ -23,8 +32,8 @@ namespace csgeom_test {
             GL.ShaderSource(fragmentPtr, fragmentCode);
             GL.CompileShader(vertexPtr);
             GL.CompileShader(fragmentPtr);
-            string vertexLog = GL.GetShaderInfoLog(vertexPtr);
-            string fragmentLog = GL.GetShaderInfoLog(fragmentPtr);
+            VertexLog = GL.GetShaderInfoLog(vertexPtr);
+            FragmentLog = GL.GetShaderInfoLog(fragmentPtr);
 
             //attach and link program
             _ptr = GL.CreateProgram();
@@ -32,7 +41,7 @@ namespace csgeom_test {
             GL.AttachShader(_ptr, fragmentPtr);
             GL.LinkProgram(_ptr);
 
-            string programLog = GL.GetProgramInfoLog(3);
+            ProgramLog = GL.GetProgramInfoLog(3);
 
             //clean up
             GL.DetachShader(_ptr, vertexPtr);
@@ -79,6 +88,16 @@ namespace csgeom_test {
         public void setUniform(string name, mat4 val) {
             int index = uniformLocation(name);
             if (index != -1) GL.ProgramUniformMatrix4(ptr, index, 1, false, val.Values1D);
+        }
+
+        public void PrintStatus() {
+            if (VertexGood && FragmentGood && ProgramGood) {
+                Console.WriteLine("All good!");
+            } else {
+                Console.WriteLine("Vertex: " + (VertexGood ? "Good!" : "Failed."));
+                Console.WriteLine("Fragment: " + (FragmentGood ? "Good!" : "Failed."));
+                Console.WriteLine("Program: " + (ProgramGood ? "Good!" : "Failed."));
+            }
         }
 
         public void destroy() {

@@ -6,9 +6,6 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "csgeom", "csgeom\csgeom.csproj", "{93A37BA9-361A-47C7-9929-AAC402B07570}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "csgeom_test", "csgeom_test\csgeom_test.csproj", "{89489022-FC61-4030-9680-904462202F1B}"
-	ProjectSection(ProjectDependencies) = postProject
-		{93A37BA9-361A-47C7-9929-AAC402B07570} = {93A37BA9-361A-47C7-9929-AAC402B07570}
-	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

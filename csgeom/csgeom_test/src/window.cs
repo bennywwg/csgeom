@@ -1,6 +1,7 @@
 ﻿using System;
 using OpenTK;
 using OpenTK.Graphics;
+using OpenTK.Graphics.OpenGL;
 using GlmSharp;
 
 namespace csgeom_test {
@@ -72,7 +73,7 @@ namespace csgeom_test {
 
         public Window(int width, int height, string title) {
             win = new NativeWindow(width, height, title, GameWindowFlags.FixedWindow, GraphicsMode.Default, DisplayDevice.Default);
-            ctx = new GraphicsContext(new GraphicsMode(32, 24, 0, 8), win.WindowInfo, 4, 4, GraphicsContextFlags.Default);
+            ctx = new GraphicsContext(new GraphicsMode(32, 24, 0, 8), win.WindowInfo, 3, 3, GraphicsContextFlags.Default);
 
             ctx.MakeCurrent(win.WindowInfo);
             ctx.LoadAll();

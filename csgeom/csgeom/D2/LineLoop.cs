@@ -1,18 +1,8 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Generic;
 
-namespace csgeom {
-    public struct Primitive2 {
-        public gvec2 v0, v1, v2;
-        public Primitive2(gvec2 v0, gvec2 v1, gvec2 v2) {
-            this.v0 = v0;
-            this.v1 = v1;
-            this.v2 = v2;
-        }
-    }
-
+namespace CSGeom.D2 {
     public enum TriangulationCode {
         operationSuccess = 0,
         operationFailed = 1 << 0,
@@ -22,24 +12,19 @@ namespace csgeom {
         robustnessFailure = 1 << 4
     }
 
-    public enum WindingDir {
-        ccw,
-        cw
-    }
-
     public struct TriangulationResult2 {
         public Primitive2[] data;
         public TriangulationCode code;
     }
 
-    public class LineLoop2 {
+    public class LineLoop {
         List<gvec2> data;
-        
+
         bool _integralccw_needsUpdate;
         double _integralccw;
         public double Integral_y_dx {
             get {
-                if(_integralccw_needsUpdate) {
+                if (_integralccw_needsUpdate) {
                     _integralccw = Integrate_y_dx();
                     _integralccw_needsUpdate = false;
                 }
@@ -55,11 +40,11 @@ namespace csgeom {
             }
             return sum;
         }
-        
+
         public WindingDir Winding => Integral_y_dx < 0 ? WindingDir.ccw : WindingDir.cw;
 
         public double Area => -Integral_y_dx * 0.5;
-        
+
         public bool IsSimple() {
             for (int i = 0; i < Count; i++) {
                 int iw0 = i % Count;
@@ -116,11 +101,23 @@ namespace csgeom {
         }
         public int Count => data.Count;
 
+        public bool IsInside(gvec2 point) {
+            gvec2 endOfRay = point + new gvec2(10000.0, 10000.0);
+            bool inside = false;
+            for (int i = 0; i < Count; i++) {
+                gvec2 ignoreThis = gvec2.zero;
+                if (Math2.SegmentsIntersecting(this[i], this[(i + 1 == Count) ? 0 : i + 1], point, endOfRay, ref ignoreThis)) {
+                    inside = !inside;
+                }
+            }
+            return inside;
+        }
+
         public List<gvec2> Data() {
             return data.ToList();
         }
-        
-        public static LineLoop2 PseudoSimpleJoin(LineLoop2 loop0, int index0, LineLoop2 loop1, int index1, bool reverse0, bool reverse1) {
+
+        public static LineLoop PseudoSimpleJoin(LineLoop loop0, int index0, LineLoop loop1, int index1, bool reverse0, bool reverse1) {
             List<gvec2> res = new List<gvec2>(loop0.Count + loop1.Count + 2);
             for (int i = reverse0 ? loop0.Count - 1 : 0; reverse0 ? i >= 0 : i <= loop0.Count; i += reverse0 ? -1 : 1) {
                 res.Add(loop0[(i + index0) % loop0.Count]);
@@ -128,7 +125,7 @@ namespace csgeom {
             for (int i = reverse1 ? loop1.Count : 0; reverse1 ? i >= 0 : i <= loop1.Count; i += reverse1 ? -1 : 1) {
                 res.Add(loop1[(i + index1) % loop1.Count]);
             }
-            return new LineLoop2(res, true, 0);
+            return new LineLoop(res, true, 0);
         }
 
         public bool IntersectsAny(gvec2 p0, gvec2 p1) {
@@ -174,7 +171,7 @@ namespace csgeom {
                 gvec2 this0 = this[i];
                 gvec2 this1 = this[(i + 1) % Count];
                 gvec2 intersection = new gvec2();
-                if(Math2.SegmentsIntersecting(p0, p1, this0, this1, ref intersection)) {
+                if (Math2.SegmentsIntersecting(p0, p1, this0, this1, ref intersection)) {
                     res.Add(new KeyValuePair<int, gvec2>(i, intersection));
                 }
             }
@@ -197,21 +194,55 @@ namespace csgeom {
             return res.OrderByDescending(tuple => -tuple.Item3).ToList();
         }
 
+
+        public struct LoopLoopIntersection {
+            public gvec2 position;
+            public int lhsIndex;
+            public int rhsIndex;
+            public double lhsParam;
+            public double rhsParam;
+        }
+        public static List<LoopLoopIntersection> AllIntersections(LineLoop lhs, LineLoop rhs) {
+            List<LoopLoopIntersection> res = new List<LoopLoopIntersection>();
+            for (int i = 0; i < lhs.Count; i++) {
+                gvec2 a0 = lhs[i];
+                gvec2 a1 = lhs[((i + 1) == lhs.Count) ? 0 : i + 1];
+                for (int j = 0; j < rhs.Count; j++) {
+                    gvec2 b0 = rhs[j];
+                    gvec2 b1 = rhs[((j + 1) == rhs.Count) ? 0 : j + 1];
+
+
+                    double param0 = 0, param1 = 0;
+                    gvec2 intersection = new gvec2();
+                    if(Math2.SegmentsIntersecting(a0, a1, b0, b1, ref intersection, ref param0, ref param1)) {
+                        res.Add(new LoopLoopIntersection {
+                            position = intersection,
+                            lhsIndex = i,
+                            rhsIndex = j,
+                            lhsParam = param0,
+                            rhsParam = param1
+                        });
+                    }
+                }
+            }
+            return res;
+        }
+
         public void Reverse() {
             data.Reverse();
         }
-        public LineLoop2 Reversed() {
+        public LineLoop Reversed() {
             List<gvec2> rev = data.ToList();
             rev.Reverse();
-            return new LineLoop2 { data = rev };
+            return new LineLoop { data = rev };
         }
 
-        public LineLoop2 Clone() {
-            return new LineLoop2(data);
+        public LineLoop Clone() {
+            return new LineLoop(data);
         }
-        
-        public static LineLoop2 Raw(List<gvec2> rawData) {
-            return new LineLoop2(rawData ?? new List<gvec2>(), true, 0);
+
+        public static LineLoop Raw(List<gvec2> rawData) {
+            return new LineLoop(rawData ?? new List<gvec2>(), true, 0);
         }
 
         public TriangulationResult2 Triangulate() {
@@ -221,8 +252,7 @@ namespace csgeom {
                 return new TriangulationResult2 { code = TriangulationCode.insufficientVertices };
             }
 
-            
-            if(!IsSimple()) {
+            if (!IsSimple()) {
                 return new TriangulationResult2 { code = TriangulationCode.notSimple };
             }
 
@@ -232,7 +262,7 @@ namespace csgeom {
                 if (this.Count == 3) {
                     return new TriangulationResult2 { data = new Primitive2[] { new Primitive2(this[0], this[1], this[2]) } };
                 } else {
-                    LineLoop2 _verts = Clone();
+                    LineLoop _verts = Clone();
                     List<Primitive2> _tris = new List<Primitive2>(_verts.Count - 2);
 
                     int index = 0;
@@ -283,171 +313,17 @@ namespace csgeom {
                 }
             }
         }
-        
-        LineLoop2(List<gvec2> data, bool _integralccw_needsUpdate, double _integralccw) {
+
+        LineLoop(List<gvec2> data, bool _integralccw_needsUpdate, double _integralccw) {
             this.data = data;
             this._integralccw_needsUpdate = _integralccw_needsUpdate;
             this._integralccw = _integralccw;
         }
-        public LineLoop2() : this(new List<gvec2>(), false, 0) {
+        public LineLoop() : this(new List<gvec2>(), false, 0) {
         }
-        public LineLoop2(gvec2[] data) : this((data != null) ? new List<gvec2>(data) : new List<gvec2>(), true, 0) {
+        public LineLoop(gvec2[] data) : this((data != null) ? new List<gvec2>(data) : new List<gvec2>(), true, 0) {
         }
-        public LineLoop2(IEnumerable<gvec2> data) : this((data != null) ? data.ToList() : new List<gvec2>(), true, 0) {
-        }
-    }
-    
-    public class WeaklySimplePolygon {
-        public LineLoop2 verts;
-        public List<LineLoop2> holes;
-        
-        static bool AnyIntersections(LineLoop2[] loops, int vert0LoopIndex, int vert0Index, int vert1LoopIndex, int vert1Index) {
-            gvec2 p0 = loops[vert0LoopIndex][vert0Index];
-            gvec2 p1 = loops[vert1LoopIndex][vert1Index];
-            for(int i = 0; i < loops.Length; i++) {
-                if (i == vert0LoopIndex) {
-                    if (loops[i].IntersectsAny(p1, vert0Index)) return true;
-                } else if(i == vert1LoopIndex) {
-                    if (loops[i].IntersectsAny(p0, vert1Index)) return true;
-                } else {
-                    if (loops[i].IntersectsAny(p0, p1)) return true;
-                }
-            }
-            return false;
-        }
-
-        struct vref {
-            public int loop;
-            public int index;
-
-            public double param;
-            public gvec2 pos;
-        }
-
-        public WeaklySimplePolygon Union(WeaklySimplePolygon other) {
-            
-
-
-            Tuple<int, int>[] ignored0 = new Tuple<int, int>[verts.Count], ignored1 = new Tuple<int, int>[other.verts.Count];
-            for (int i = 0; i < ignored0.Length; i++) ignored0[i] = new Tuple<int, int>(-1, -1);
-            for (int i = 0; i < ignored1.Length; i++) ignored1[i] = new Tuple<int, int>(-1, -1);
-            while(true) {
-
-            }
-            return null;
-        }
-
-        public WeaklySimplePolygon Clone() {
-            WeaklySimplePolygon res = new WeaklySimplePolygon {
-                verts = verts.Clone(),
-                holes = new List<LineLoop2>()
-            };
-            foreach (LineLoop2 hole in holes) {
-                res.holes.Add(hole.Clone());
-            }
-            return res;
-        }
-
-        public LineLoop2 Simplify() {
-            List<LineLoop2> remainingLoops = holes.ToList();
-            remainingLoops.Insert(0, verts.Clone());
-            
-            //iterate over each hole, trying to find a line that cuts the hole out without intersecting anything else
-            while(remainingLoops.Count > 1) {
-                LineLoop2 hole = remainingLoops[1];
-
-                bool holeDone = false;
-                int foundVertexIndex = -1;
-                int foundLoopIndex = -1;
-                int foundOtherVertexIndex = -1;
-
-                //we have go into each loop including the main loop at index 0 
-                for (int loopIndex = 0; loopIndex < remainingLoops.Count; loopIndex++) {
-                    if (loopIndex == 1) continue; //
-
-                    LineLoop2 loop = remainingLoops[loopIndex];
-
-                    //check each vertex in this hole...
-                    for (int p0Index = 0; p0Index < hole.Count; p0Index++) {
-                    gvec2 p0 = hole[p0Index];
-
-
-                        //and make a segment with each vertex in this loop...
-                        for(int p1Index = 0; p1Index < loop.Count; p1Index++) {
-                            gvec2 p1 = loop[p1Index];
-                            
-                            //we have now obtained our line segment that must be checked for collision against every pre-existing line segment
-                            //this operation is important enough to have its own function
-                            if(!AnyIntersections(remainingLoops.ToArray(), 1, p0Index, loopIndex, p1Index)) {
-
-                                //we're almost done, just make sure it isn't the wrong side of a hole cutting edge
-                                bool valid = true;
-
-                                {
-                                    gvec2 n0 = (p0 - p1);
-                                    gvec2 p0n0 = (loop[(p1Index - 1 + loop.Count) % loop.Count] - p1);
-                                    gvec2 p0n1 = (loop[(p1Index + 1) % loop.Count] - p1);
-
-                                    double ap0n0 = Math.Atan2(p0n0.y, p0n0.x) + Math.PI * 2;
-                                    double an0 = Math.Atan2(n0.y, n0.x) + Math.PI * 2; if (an0 < ap0n0) an0 += Math.PI * 2;
-                                    double ap0n1 = Math.Atan2(p0n1.y, p0n1.x) + Math.PI * 2; if (ap0n1 < ap0n0) ap0n1 += Math.PI * 2;
-
-                                    if (an0 > ap0n0 && an0 < ap0n1) valid = false;
-
-                                }
-
-                                if (valid) {
-                                    gvec2 n0 = (p1 - p0);
-                                    gvec2 p0n0 = (hole[(p1Index - 1 + hole.Count) % hole.Count] - p0);
-                                    gvec2 p0n1 = (hole[(p1Index + 1) % hole.Count] - p0);
-
-                                    double ap0n0 = Math.Atan2(p0n0.y, p0n0.x) + Math.PI * 2;
-                                    double an0 = Math.Atan2(n0.y, n0.x) + Math.PI * 2; if(an0 < ap0n0) an0 += Math.PI * 2;
-                                    double ap0n1 = Math.Atan2(p0n1.y, p0n1.x) + Math.PI * 2; if (ap0n1 < ap0n0) ap0n1 += Math.PI * 2;
-
-                                    if (an0 > ap0n0 && an0 < ap0n1) valid = false;
-                                }
-
-                                
-                                if (valid) {
-                                    holeDone = true;
-                                    foundVertexIndex = p0Index;
-                                    foundLoopIndex = loopIndex;
-                                    foundOtherVertexIndex = p1Index;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (holeDone) break;
-                    }
-
-                    if (holeDone) break;
-                }
-
-                if (!holeDone) throw new Exception("Found no way out for a hole");
-
-                Console.WriteLine("holeDone: " + holeDone);
-                Console.WriteLine("foundVertexIndex: " + foundVertexIndex);
-                Console.WriteLine("foundHoleIndex: " + (foundLoopIndex == -1 ? "main" : foundVertexIndex.ToString()));
-                Console.WriteLine("foundHoleVertexIndex: " + foundOtherVertexIndex);
-
-                //we need this conditional to account for the main loop winding ccw and holes winding cw
-                if (foundLoopIndex == 0) {
-                    remainingLoops[0] = LineLoop2.PseudoSimpleJoin(remainingLoops[0], foundOtherVertexIndex, hole, foundVertexIndex, false, false);
-                    remainingLoops.RemoveAt(1);
-                } else {
-                    remainingLoops[1] = LineLoop2.PseudoSimpleJoin(remainingLoops[foundLoopIndex], foundOtherVertexIndex, hole, foundVertexIndex, false, false);
-                    remainingLoops.RemoveAt(foundLoopIndex);
-                }
-            }
-            
-            return remainingLoops[0];
-        }
-
-        public WeaklySimplePolygon() {
-            verts = new LineLoop2();
-            holes = new List<LineLoop2>();
+        public LineLoop(IEnumerable<gvec2> data) : this((data != null) ? data.ToList() : new List<gvec2>(), true, 0) {
         }
     }
 }

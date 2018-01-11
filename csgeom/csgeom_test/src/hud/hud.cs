@@ -79,6 +79,7 @@ namespace csgeom_test {
         }
     }
 
+    [Flags]
     public enum AlignMode {
         leftAlign = 0,
         rightAlign = 1,
@@ -350,8 +351,8 @@ namespace csgeom_test {
                 Program.cam.Position += new vec3(Program.cam.ViewRot.Inverse * new vec4(Motion, 1)) * deltaT * 10.0f;
             } else {
                 if (panning) {
-                    Program.cam.Position.x = CameraStart.Position.x + MouseStart.x - Win.Mouse.x;
-                    Program.cam.Position.y = CameraStart.Position.y + (MouseStart.y - Win.Mouse.y);
+                    //Program.cam.Position.x = CameraStart.Position.x + MouseStart.x - Win.Mouse.x;
+                    //Program.cam.Position.y = CameraStart.Position.y + (MouseStart.y - Win.Mouse.y);
                 }
                 //Program.cam.Position += new vec3(Program.cam.ViewRot.Inverse * new vec4(Motion, 1)) * deltaT * 10.0f;
             }

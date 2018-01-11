@@ -21,17 +21,17 @@ namespace csgeom_test {
         }
 
         //glm has more support functions than csgeom vertices
-        public static vec2 glm(this csgeom.gvec2 v) {
+        public static vec2 glm(this CSGeom.gvec2 v) {
             return new vec2((float)v.x, (float)v.y);
         }
-        public static vec3 glm(this csgeom.gvec3 v) {
+        public static vec3 glm(this CSGeom.gvec3 v) {
             return new vec3((float)v.x, (float)v.y, (float)v.z);
         }
-        public static csgeom.gvec2 csgeom(this vec2 v) {
-            return new csgeom.gvec2 { x = v.x, y = v.y };
+        public static CSGeom.gvec2 csgeom(this vec2 v) {
+            return new CSGeom.gvec2 { x = v.x, y = v.y };
         }
-        public static csgeom.gvec3 csgeom(this vec3 v) {
-            return new csgeom.gvec3 { x = v.x, y = v.y, z = v.z };
+        public static CSGeom.gvec3 csgeom(this vec3 v) {
+            return new CSGeom.gvec3 { x = v.x, y = v.y, z = v.z };
         }
 
         public static vec3 Color(string hex) {
@@ -150,10 +150,10 @@ namespace csgeom_test {
             }
         }
 
-        public static void Transform(this csgeom.LineLoop2 loop, dmat4 transform) {
+        public static void Transform(this CSGeom.D2.LineLoop loop, dmat4 transform) {
             for (int i = 0; i < loop.Count; i++) {
                 dvec2 tmp = new dvec2(transform * new dvec4(loop[i].x, loop[i].y, 0, 1));
-                loop[i] = new csgeom.gvec2(tmp.x, tmp.y);
+                loop[i] = new CSGeom.gvec2(tmp.x, tmp.y);
             }
         }
     }
