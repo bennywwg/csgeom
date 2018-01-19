@@ -118,72 +118,239 @@ namespace CSGeom.D2 {
             return remainingLoops[0];
         }
 
-        struct VertexInfo {
-            public TraversalMode mode;
-            public bool isNew;
+        //this is used internally
+        public class IntersectionInfo {
             public gvec2 vert;
-            public int originalIndex;
-        }
-
-        public struct IntersectionInfo {
-            public gvec2 vert;
-            public TraversalMode mode;
             public int lhsIndex;
             public int rhsIndex;
             public int lhsSegment;
             public int rhsSegment;
             public double lhsParam;
             public double rhsParam;
+            public TraversalMode lhsMode;
+            public TraversalMode rhsMode;
+            public double lhsDist => lhsSegment + lhsParam; //basically, how far it is along the loop if each segment = 1 unit
+            public double rhsDist => rhsSegment + rhsParam; //basically, how far it is along the loop if each segment = 1 unit
         }
         public static List<IntersectionInfo> GetIntersectionInfo(WeaklySimplePolygon lhs, WeaklySimplePolygon rhs) {
             List<IntersectionInfo> intersections = new List<IntersectionInfo>();
             //-1 just refers to verts and not an index into holes
             for (int i = -1; i < lhs.holes.Count; i++) {
-                LineLoop aLoop = (i == -1) ? lhs.verts : lhs.holes[i];
+                LineLoop lhsLoop = (i == -1) ? lhs.verts : lhs.holes[i];
                 for (int j = -1; j < rhs.holes.Count; j++) {
-                    LineLoop bLoop = (j == -1) ? rhs.verts : rhs.holes[j];
-                    List<LineLoop.LoopLoopIntersection> theseIntersections = LineLoop.AllIntersections(aLoop, bLoop);
+                    LineLoop rhsLoop = (j == -1) ? rhs.verts : rhs.holes[j];
+                    List<LineLoop.LoopLoopIntersection> theseIntersections = LineLoop.AllIntersections(lhsLoop, rhsLoop);
 
-                    intersections.AddRange(theseIntersections.Select(info => new IntersectionInfo {
-                        vert = info.position,
-                        mode = TraversalMode.entering, //FIX THIS
-                        lhsIndex = i,
-                        rhsIndex = j,
-                        lhsSegment = info.lhsIndex,
-                        rhsSegment = info.rhsIndex
+                    intersections.AddRange(theseIntersections.Select(info => {
+                        gvec2 lhsDir = lhsLoop[info.lhsIndex + 1] - lhsLoop[info.lhsIndex];
+                        gvec2 rhsDir = rhsLoop[info.rhsIndex + 1] - rhsLoop[info.rhsIndex];
+
+                        TraversalMode lhsMode = gvec2.Dot(lhsDir, rhsDir.RotatedCCW90()) > 0 ? TraversalMode.entering : TraversalMode.exiting;
+                        TraversalMode rhsMode = gvec2.Dot(rhsDir, lhsDir.RotatedCCW90()) > 0 ? TraversalMode.entering : TraversalMode.exiting;
+
+                        return new IntersectionInfo {
+                            vert = info.position,
+                            lhsIndex = i,
+                            rhsIndex = j,
+                            lhsSegment = info.lhsIndex,
+                            rhsSegment = info.rhsIndex,
+                            lhsParam = info.lhsParam,
+                            rhsParam = info.rhsParam,
+                            lhsMode = lhsMode,
+                            rhsMode = rhsMode
+                        };
                     }));
                 }
             }
 
             return intersections;
         }
+        public struct SegmentInfo {
+            public gvec2 vert;
+            public int originalSegment;
+            public double param;
+            public bool done;
+            public int otherLoop;
+            public int otherSegment;
+        }
         public static WeaklySimplePolygon Union(WeaklySimplePolygon lhs, WeaklySimplePolygon rhs) {
-            lhs = lhs.Clone();
-            rhs = rhs.Clone();
+            List<IntersectionInfo> intersections = GetIntersectionInfo(lhs, rhs);
 
-            //generate a list of all intersections between all loops
-            List<IntersectionInfo> intersections = new List<IntersectionInfo>();
-            //-1 just refers to verts and not an index into holes
-            for (int i = -1; i < lhs.holes.Count; i++) {
-                LineLoop aLoop = (i == -1) ? lhs.verts : lhs.holes[i];
-                for (int j = -1; j < rhs.holes.Count; j++) {
-                    LineLoop bLoop = (j == -1) ? rhs.verts : rhs.holes[j];
-                    List<LineLoop.LoopLoopIntersection> theseIntersections = LineLoop.AllIntersections(aLoop, bLoop);
+            List<IntersectionInfo> currentLoop = new List<IntersectionInfo>();
+            while(intersections.Count != 0) {
+                if (currentLoop.Count == 0) {
+                    currentLoop.Add(intersections[0]);
+                    intersections.RemoveAt(0);
+                }
 
-                    intersections.AddRange(theseIntersections.Select(info => new IntersectionInfo {
-                        vert = info.position,
-                        mode = TraversalMode.entering, //FIX THIS
-                        lhsIndex = i,
-                        rhsIndex = j,
-                        lhsSegment = info.lhsIndex,
-                        rhsSegment = info.rhsIndex
-                    }));
+                IntersectionInfo lastIntersection = currentLoop.Last();
+                IntersectionInfo nearestIntersection = null;
+                TraversalMode mode = (lastIntersection.lhsMode == TraversalMode.exiting) ? TraversalMode.lhs : TraversalMode.rhs;
+
+                //find the next intersection and store it in nearestIntersection
+                foreach (IntersectionInfo info in intersections) {
+                    if (info.lhsIndex == lastIntersection.lhsIndex && info.rhsIndex == lastIntersection.rhsIndex) {
+                        if ((mode & TraversalMode.lhs) != 0) {
+                            //traversing lhs
+                            if (nearestIntersection == null) {
+                                nearestIntersection = info;
+                            } else {
+                                if (info.lhsDist < nearestIntersection.lhsDist) {
+                                    if (nearestIntersection.lhsDist < lastIntersection.lhsDist) {
+                                        nearestIntersection = info;
+                                    } else {
+                                        if (info.lhsDist < lastIntersection.lhsDist) {
+                                            nearestIntersection = info;
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            //traversing rhs
+                            if (nearestIntersection == null) {
+                                nearestIntersection = info;
+                            } else {
+                                if (info.rhsDist < nearestIntersection.rhsDist) {
+                                    if (nearestIntersection.rhsDist < lastIntersection.rhsDist) {
+                                        nearestIntersection = info;
+                                    } else {
+                                        if (info.rhsDist < lastIntersection.rhsDist) {
+                                            nearestIntersection = info;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if(nearestIntersection == currentLoop.First()) {
+                    break; //loop is done
+                } else {
+                    currentLoop.Add(nearestIntersection);
+                    intersections.Remove(nearestIntersection);
                 }
             }
 
-            return null;
 
-            //Func<IntersectionInfo>
+
+
+
+
+
+
+
+
+
+            lhs = lhs.Clone();
+            rhs = rhs.Clone();
+
+            //set up lists of metadata for the new loops
+            List<SegmentInfo> lhsVerts = new List<SegmentInfo>(lhs.verts.Count);
+            for (int i = 0; i < lhs.verts.Count; i++) {
+                lhsVerts[i] = new SegmentInfo {
+                    vert = lhs.verts[i],
+                    originalSegment = i,
+                    done = false,
+                    otherLoop = -1,
+                    otherSegment = -1
+                };
+            }
+            List<List<SegmentInfo>> lhsHoles = new List<List<SegmentInfo>>(lhs.holes.Count);
+            for (int u = 0; u < lhs.holes.Count; u++) {
+                LineLoop verts = lhs.holes[u];
+                lhsHoles[u] = new List<SegmentInfo>(verts.Count);
+                for (int i = 0; i < verts.Count; i++) {
+                    lhsVerts[i] = new SegmentInfo {
+                        vert = verts[i],
+                        originalSegment = i,
+                        done = false,
+                        otherLoop = -1,
+                        otherSegment = -1
+                    };
+                }
+            }
+            List<SegmentInfo> rhsVerts = new List<SegmentInfo>(rhs.verts.Count);
+            for (int i = 0; i < rhs.verts.Count; i++) {
+                rhsVerts[i] = new SegmentInfo {
+                    vert = rhs.verts[i],
+                    originalSegment = i,
+                    done = false,
+                    otherLoop = -1,
+                    otherSegment = -1
+                };
+            }
+            List<List<SegmentInfo>> rhsHoles = new List<List<SegmentInfo>>(rhs.holes.Count);
+            for (int u = 0; u < rhs.holes.Count; u++) {
+                LineLoop verts = rhs.holes[u];
+                rhsHoles[u] = new List<SegmentInfo>(verts.Count);
+                for (int i = 0; i < verts.Count; i++) {
+                    rhsVerts[i] = new SegmentInfo {
+                        vert = verts[i],
+                        originalSegment = i,
+                        done = false,
+                        otherLoop = -1,
+                        otherSegment = -1
+                    };
+                }
+            }
+
+            //insert the intersections into the new loop
+            for (int i = 0; i < intersections.Count; i++) {
+                IntersectionInfo item = intersections[i];
+                List<SegmentInfo> lhsList = (item.lhsIndex == -1) ? lhsVerts : lhsHoles[item.lhsIndex];
+                List<SegmentInfo> rhsList = (item.rhsIndex == -1) ? rhsVerts : rhsHoles[item.rhsIndex];
+
+                //these loops do two things, find the correct seg.originalIndex
+                //and insert the intersection correctly based on seg.param
+                if(true) {
+                    int lastFoundIndex = -1;
+                    for (int u = 0; u < lhsList.Count; u++) {
+                        SegmentInfo seg = lhsList[u];
+                        if (item.lhsSegment == seg.originalSegment) {
+                            if (item.lhsParam >= seg.param) {
+                                lastFoundIndex = u;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    lhsList.Insert(lastFoundIndex, new SegmentInfo {
+                        vert = item.vert,
+                        originalSegment = item.lhsSegment,
+                        param = item.lhsParam,
+                        done = false,
+                        otherLoop = item.rhsIndex,
+                        otherSegment = item.rhsSegment
+                    });
+                }
+                if(true) {
+                    int lastFoundIndex = -1;
+                    for (int u = 0; u < rhsList.Count; u++) {
+                        SegmentInfo seg = rhsList[u];
+                        if (item.rhsSegment == seg.originalSegment) {
+                            if (item.rhsParam >= seg.param) {
+                                lastFoundIndex = u;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    rhsList.Insert(lastFoundIndex, new SegmentInfo {
+                        vert = item.vert,
+                        originalSegment = item.rhsSegment,
+                        param = item.rhsParam,
+                        done = false,
+                        otherLoop = item.lhsIndex,
+                        otherSegment = item.lhsSegment
+                    });
+                }
+
+            }
+
+
+
+            return null;
         }
 
         public WeaklySimplePolygon Clone() {

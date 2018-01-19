@@ -151,7 +151,7 @@ namespace csgeom_test {
 
 
 
-                GL.ClearColor(1, 1, 1, 1);
+                //GL.ClearColor(1, 1, 1, 1);
                 GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
                 hud.DrawRecurse();
@@ -161,7 +161,6 @@ namespace csgeom_test {
                 lastDelaT = st.ElapsedMilliseconds / (double)Stopwatch.Frequency;
 
                 if(outer.ElapsedMilliseconds > 1000) {
-                    Console.WriteLine(count);
                     count = 0;
                     outer = Stopwatch.StartNew();
                 }

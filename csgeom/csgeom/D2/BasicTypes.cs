@@ -5,10 +5,13 @@ namespace CSGeom.D2 {
         cw
     }
 
+    [Flags]
     public enum TraversalMode {
-        entering,
-        exiting,
-        inline
+        entering = 1,
+        exiting = 2,
+        inline = 4,
+        lhs = 8,
+        rhs = 16
     }
 
     public struct Primitive2 {

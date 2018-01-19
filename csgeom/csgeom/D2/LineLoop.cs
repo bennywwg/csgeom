@@ -75,6 +75,7 @@ namespace CSGeom.D2 {
 
         public gvec2 this[int index] {
             get {
+                if (index == Count) return data[0];
                 return data[index];
             }
             set {

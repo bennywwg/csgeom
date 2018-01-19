@@ -235,6 +235,12 @@ namespace csgeom_test {
             }
         }
 
+        public void Translate(vec3 t) {
+            for (int i = 0; i < positions.Count; i++) {
+                positions[i] += t;
+            }
+        }
+
         /// <summary>
         ///     Makes a rectangle with a certain size and uv in cartesian space
         /// </summary>

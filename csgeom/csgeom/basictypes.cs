@@ -40,6 +40,10 @@ namespace CSGeom {
         public static gvec2 up = j;
         public static gvec2 left = -i;
         public static gvec2 down = -j;
+
+        public gvec2 RotatedCCW90() {
+            return new gvec2(-y, x);
+        }
         
         public static gvec2 operator +(gvec2 lhs, gvec2 rhs) {
             return new gvec2 { x = lhs.x + rhs.x, y = lhs.y + rhs.y };

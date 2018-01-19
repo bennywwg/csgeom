@@ -12,6 +12,7 @@ using OpenTK.Input;
 namespace csgeom_test {
     class HUDGeom : HUDItem {
         public WeaklySimplePolygon poly;
+        public WeaklySimplePolygon other;
 
         public bool Dragging { get; private set; }
         public vec3 LastCursor { get; private set; }
@@ -30,8 +31,6 @@ namespace csgeom_test {
         void DrawCursor() {
             vec3 pos = new vec3();
 
-
-
             if (CastCursor(ref pos)) {
                 Model m = new Model(Mesh.ColoredRectangle(new vec2(0.05f, 0.05f), new vec3(0, 0, 1)));
 
@@ -44,25 +43,39 @@ namespace csgeom_test {
         void DrawGeom() {
             Random r = new Random(5);
 
-
-            float inc = 0.02f;
-
-            Mesh m = Mesh.ColoredRectangle(new vec2(inc, inc), new vec3(1.0f, 0.0f, 0.0f));
-            Model sm = new Model(m);
-
-            for (float x = -1; x < 1; x += inc) {
-                for (float y = -1; y < 1; y += inc) {
-                    if(poly.verts.IsInside(new gvec2(x + inc/2f, y + inc/2f))) Program.g.DrawModel(sm, mat4.Translate(x, y, 0f), Program.colorShader);
+            //draw other polygon
+            {
+                List<vec2[]> lines = new List<vec2[]>();
+                for (int i = 0; i < other.verts.Count; i++) {
+                    lines.Add(new vec2[] { other.verts[i].glm(), other.verts[i].glm(), other.verts[(i + 1) % other.verts.Count].glm() });
                 }
-            }
+                Mesh l = new Mesh(MeshComponent.colors);
+                l.Triangles(lines, Util.Color("#ff99cf"));
 
-            sm.Destroy();
+                Model sm = new Model(l);
+                Program.g.DrawModel(sm, mat4.Identity, Program.colorShader, OpenTK.Graphics.OpenGL.PolygonMode.Line, 4);
+                sm.Destroy();
+            }
+        
+
+
 
             if (solidCache != null && RenderSolid) {
                 Program.g.DrawModel(solidCache, mat4.Identity, Program.colorShader);
             }
             if(outlineCache != null) {
                 Program.g.DrawModel(outlineCache, mat4.Identity, Program.colorShader, OpenTK.Graphics.OpenGL.PolygonMode.Line, 4);
+            }
+
+            //draw intersections
+            {
+                List<WeaklySimplePolygon.IntersectionInfo> info = WeaklySimplePolygon.GetIntersectionInfo(poly, other);
+
+                Mesh square = Mesh.ColoredRectangle(new vec2(0.02f, 0.02f), Util.Red);
+                square.Translate(new vec3(-0.01f, -0.01f, 0f));
+                Model sm = new Model(square);
+                foreach (var item in info) Program.g.DrawModel(sm, mat4.Translate((float)item.vert.x, (float)item.vert.y, 0f), Program.colorShader);
+                sm.Destroy();
             }
         }
 
@@ -95,6 +108,7 @@ namespace csgeom_test {
                 solidCache = new Model(tri);
             }
 
+            //generate outline mesh and model
             List<vec2[]> lines = new List<vec2[]>();
             for (int i = 0; i < poly.verts.Count; i++) {
                 lines.Add(new vec2[] { poly.verts[i].glm(), poly.verts[i].glm(), poly.verts[(i + 1) % poly.verts.Count].glm() });
@@ -167,12 +181,16 @@ namespace csgeom_test {
             poly = new WeaklySimplePolygon();
             poly.verts.Add(new gvec2(0, 0));
             poly.verts.Add(new gvec2(1, 0));
-            poly.verts.Add(new gvec2(2, 0));
-            poly.verts.Add(new gvec2(3, 0));
-            poly.verts.Add(new gvec2(3, 1));
+            poly.verts.Add(new gvec2(1, 1));
             poly.verts.Add(new gvec2(0, 1));
 
             UpdateModels();
+
+            other = new WeaklySimplePolygon();
+            other.verts.Add(new gvec2(-0.5, -0.5));
+            other.verts.Add(new gvec2(0.5, -0.5));
+            other.verts.Add(new gvec2(0.5, 0.5));
+            other.verts.Add(new gvec2(-0.5, 0.5));
 
 
 
@@ -228,6 +246,8 @@ namespace csgeom_test {
                         p1.verts.Transform(dmat4.Translate(-0.5, -0.5, 0));
 
                         //poly = poly.Union(p1);
+
+                        WeaklySimplePolygon.Union(poly, other);
 
                         Console.WriteLine("abc");
 

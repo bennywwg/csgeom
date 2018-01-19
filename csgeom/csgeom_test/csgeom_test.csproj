@@ -84,8 +84,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\csgeom\csgeom.csproj">
-      <Project>{93a37ba9-361a-47c7-9929-aac402b07570}</Project>
-      <Name>CSGeom</Name>
+      <Project>{93A37BA9-361A-47C7-9929-AAC402B07570}</Project>
+      <Name>csgeom</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
