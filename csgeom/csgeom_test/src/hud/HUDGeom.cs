@@ -45,16 +45,24 @@ namespace csgeom_test {
 
             //draw other polygon
             {
-                List<vec2[]> lines = new List<vec2[]>();
-                for (int i = 0; i < other.verts.Count; i++) {
-                    lines.Add(new vec2[] { other.verts[i].glm(), other.verts[i].glm(), other.verts[(i + 1) % other.verts.Count].glm() });
-                }
-                Mesh l = new Mesh(MeshComponent.colors);
-                l.Triangles(lines, Util.Color("#ff99cf"));
 
-                Model sm = new Model(l);
-                Program.g.DrawModel(sm, mat4.Identity, Program.colorShader, OpenTK.Graphics.OpenGL.PolygonMode.Line, 4);
-                sm.Destroy();
+                for(int u = -1; u < other.holes.Count; u++) {
+                    LineLoop lo = (u == -1) ? other.verts : other.holes[u];
+
+                    List<vec2[]> lines = new List<vec2[]>();
+                    for (int i = 0; i < lo.Count; i++) {
+                        lines.Add(new vec2[] { lo[i].glm(), lo[i].glm(), lo[(i + 1) % lo.Count].glm() });
+                    }
+                    Mesh l = new Mesh(MeshComponent.colors);
+                    l.Triangles(lines, Util.Color("#ff99cf"));
+
+                    Model sm = new Model(l);
+                    Program.g.DrawModel(sm, mat4.Identity, Program.colorShader, OpenTK.Graphics.OpenGL.PolygonMode.Line, 1);
+                    sm.Destroy();
+
+                }
+
+                
             }
         
 
@@ -64,7 +72,7 @@ namespace csgeom_test {
                 Program.g.DrawModel(solidCache, mat4.Identity, Program.colorShader);
             }
             if(outlineCache != null) {
-                Program.g.DrawModel(outlineCache, mat4.Identity, Program.colorShader, OpenTK.Graphics.OpenGL.PolygonMode.Line, 4);
+                Program.g.DrawModel(outlineCache, mat4.Identity, Program.colorShader, OpenTK.Graphics.OpenGL.PolygonMode.Line, 1);
             }
 
             //draw intersections
@@ -133,7 +141,8 @@ namespace csgeom_test {
         }
 
         public override bool Hitbox(vec2 point) {
-            return poly.verts.IsInside(point.csgeom());
+            return false;
+            //return poly.verts.IsInside(point.csgeom());
         }
 
         public override void DoMouseDown(MouseButtonEventArgs bu) {
@@ -181,7 +190,6 @@ namespace csgeom_test {
             poly = new WeaklySimplePolygon();
             poly.verts.Add(new gvec2(0, 0));
             poly.verts.Add(new gvec2(1, 0));
-            poly.verts.Add(new gvec2(1, 1));
             poly.verts.Add(new gvec2(0, 1));
 
             UpdateModels();
@@ -189,8 +197,8 @@ namespace csgeom_test {
             other = new WeaklySimplePolygon();
             other.verts.Add(new gvec2(-0.5, -0.5));
             other.verts.Add(new gvec2(0.5, -0.5));
-            other.verts.Add(new gvec2(0.5, 0.5));
             other.verts.Add(new gvec2(-0.5, 0.5));
+            other.verts.Transform(dmat4.Translate(0.5f, 0.5f, 0f));
 
 
 
@@ -238,16 +246,11 @@ namespace csgeom_test {
                 MouseDown = (item, args) => {
                     if (Root.Hovered == item) {
 
-                        WeaklySimplePolygon p1 = new WeaklySimplePolygon();
-                        p1.verts.Add(new gvec2(0, 0));
-                        p1.verts.Add(new gvec2(1, 0));
-                        p1.verts.Add(new gvec2(1, 1));
-                        p1.verts.Add(new gvec2(0, 1));
-                        p1.verts.Transform(dmat4.Translate(-0.5, -0.5, 0));
-
                         //poly = poly.Union(p1);
 
-                        WeaklySimplePolygon.Union(poly, other);
+                        WeaklySimplePolygon res = WeaklySimplePolygon.Union(poly, other);
+
+                        other = res;
 
                         Console.WriteLine("abc");
 
