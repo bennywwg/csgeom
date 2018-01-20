@@ -191,6 +191,7 @@ namespace CSGeom.D2 {
             List<IntersectionPair> currentLoop = new List<IntersectionPair>();
 
             while(ir.intersections.Count != 0) {
+                //start off a random pair if we need to
                 if (currentLoop.Count == 0) {
                     currentLoop.Add(ir.intersections[0]);
                 }
@@ -199,7 +200,7 @@ namespace CSGeom.D2 {
                 IntersectionPair nearestIntersection = null;
                 IntersectionPair lastIntersection = currentLoop.Last();
                 TraversalMode mode = (lastIntersection.lhs.mode == TraversalMode.exiting) ? TraversalMode.lhs : TraversalMode.rhs;
-
+                
                 foreach (IntersectionPair info in ir.intersections) {
                     if (info.lhs.index == lastIntersection.lhs.index && info.rhs.index == lastIntersection.rhs.index && info != lastIntersection) {
                         if (mode == TraversalMode.lhs) {
