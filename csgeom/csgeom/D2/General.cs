@@ -119,21 +119,29 @@ namespace CSGeom.D2 {
         }
 
         //this is used internally
-        public class IntersectionInfo {
+        public class IntersectionPair {
             public gvec2 vert;
-            public int lhsIndex;
-            public int rhsIndex;
-            public int lhsSegment;
-            public int rhsSegment;
-            public double lhsParam;
-            public double rhsParam;
-            public TraversalMode lhsMode;
-            public TraversalMode rhsMode;
-            public double lhsDist => lhsSegment + lhsParam; //basically, how far it is along the loop if each segment = 1 unit
-            public double rhsDist => rhsSegment + rhsParam; //basically, how far it is along the loop if each segment = 1 unit
+            public IntersectionInfo lhs, rhs;
         }
-        public static List<IntersectionInfo> GetIntersectionInfo(WeaklySimplePolygon lhs, WeaklySimplePolygon rhs) {
-            List<IntersectionInfo> intersections = new List<IntersectionInfo>();
+        public class IntersectionInfo {
+            public int index;
+            public int segment;
+            public double param;
+            public TraversalMode mode;
+            public double dist => segment + param; //basically, how far it is along the loop if each segment = 1 unit
+        }
+        public class IntersectionResolution {
+            public List<IntersectionPair> intersections;
+            public Dictionary<int, int> lhs;
+            public Dictionary<int, int> rhs;
+        }
+        public static IntersectionResolution GetIntersectionInfo(WeaklySimplePolygon lhs, WeaklySimplePolygon rhs) {
+            IntersectionResolution res = new IntersectionResolution {
+                intersections = new List<IntersectionPair>(),
+                lhs = new Dictionary<int, int>(),
+                rhs = new Dictionary<int, int>()
+            };
+            
             //-1 just refers to verts and not an index into holes
             for (int i = -1; i < lhs.holes.Count; i++) {
                 LineLoop lhsLoop = (i == -1) ? lhs.verts : lhs.holes[i];
@@ -141,86 +149,86 @@ namespace CSGeom.D2 {
                     LineLoop rhsLoop = (j == -1) ? rhs.verts : rhs.holes[j];
                     List<LineLoop.LoopLoopIntersection> theseIntersections = LineLoop.AllIntersections(lhsLoop, rhsLoop);
 
-                    intersections.AddRange(theseIntersections.Select(info => {
+                    foreach(LineLoop.LoopLoopIntersection info in theseIntersections) {
                         gvec2 lhsDir = lhsLoop[info.lhsIndex + 1] - lhsLoop[info.lhsIndex];
                         gvec2 rhsDir = rhsLoop[info.rhsIndex + 1] - rhsLoop[info.rhsIndex];
 
                         TraversalMode lhsMode = gvec2.Dot(lhsDir, rhsDir.RotatedCCW90()) > 0 ? TraversalMode.entering : TraversalMode.exiting;
                         TraversalMode rhsMode = gvec2.Dot(rhsDir, lhsDir.RotatedCCW90()) > 0 ? TraversalMode.entering : TraversalMode.exiting;
 
-                        return new IntersectionInfo {
+                        res.intersections.Add(new IntersectionPair {
                             vert = info.position,
-                            lhsIndex = i,
-                            rhsIndex = j,
-                            lhsSegment = info.lhsIndex,
-                            rhsSegment = info.rhsIndex,
-                            lhsParam = info.lhsParam,
-                            rhsParam = info.rhsParam,
-                            lhsMode = lhsMode,
-                            rhsMode = rhsMode
-                        };
-                    }));
+                            lhs = new IntersectionInfo {
+                                index = i,
+                                segment = info.lhsIndex,
+                                param = info.lhsParam,
+                                mode = lhsMode
+                            },
+                            rhs = new IntersectionInfo {
+                                index = j,
+                                segment = info.rhsIndex,
+                                param = info.rhsParam,
+                                mode = rhsMode
+                            }
+                        });
+
+                        res.lhs[info.lhsIndex] = res.intersections.Count - 1;
+                        res.rhs[info.rhsIndex] = res.intersections.Count - 1;
+                    }
                 }
             }
 
-            return intersections;
-        }
-        public struct SegmentInfo {
-            public gvec2 vert;
-            public int originalSegment;
-            public double param;
-            public bool done;
-            public int otherLoop;
-            public int otherSegment;
+            return res;
         }
         public static WeaklySimplePolygon Union(WeaklySimplePolygon lhs, WeaklySimplePolygon rhs) {
             WeaklySimplePolygon res = new WeaklySimplePolygon();
             
-            List<IntersectionInfo> intersections = GetIntersectionInfo(lhs, rhs);
+            //preprocessing
 
-            List<IntersectionInfo> currentLoop = new List<IntersectionInfo>();
 
-            while(intersections.Count != 0) {
+            IntersectionResolution ir = GetIntersectionInfo(lhs, rhs);
+
+            List<IntersectionPair> currentLoop = new List<IntersectionPair>();
+
+            while(ir.intersections.Count != 0) {
                 if (currentLoop.Count == 0) {
-                    currentLoop.Add(intersections[0]);
+                    currentLoop.Add(ir.intersections[0]);
                 }
 
                 //find the next intersection and store it in nearestIntersection
-                IntersectionInfo nearestIntersection = null;
-                {
-                    IntersectionInfo lastIntersection = currentLoop.Last();
-                    TraversalMode mode = (lastIntersection.lhsMode == TraversalMode.exiting) ? TraversalMode.lhs : TraversalMode.rhs;
+                IntersectionPair nearestIntersection = null;
+                IntersectionPair lastIntersection = currentLoop.Last();
+                TraversalMode mode = (lastIntersection.lhs.mode == TraversalMode.exiting) ? TraversalMode.lhs : TraversalMode.rhs;
 
-                    foreach (IntersectionInfo info in intersections) {
-                        if (info.lhsIndex == lastIntersection.lhsIndex && info.rhsIndex == lastIntersection.rhsIndex && info != lastIntersection) {
-                            if (mode == TraversalMode.lhs) {
-                                //traversing lhs
-                                if (nearestIntersection == null) {
-                                    nearestIntersection = info;
+                foreach (IntersectionPair info in ir.intersections) {
+                    if (info.lhs.index == lastIntersection.lhs.index && info.rhs.index == lastIntersection.rhs.index && info != lastIntersection) {
+                        if (mode == TraversalMode.lhs) {
+                            //traversing lhs
+                            if (nearestIntersection == null) {
+                                nearestIntersection = info;
+                            } else {
+                                if(nearestIntersection.lhs.dist < lastIntersection.lhs.dist) {
+                                    if(info.lhs.dist > lastIntersection.lhs.dist || info.lhs.dist < nearestIntersection.lhs.dist) {
+                                        nearestIntersection = info;
+                                    }
                                 } else {
-                                    if(nearestIntersection.lhsDist < lastIntersection.lhsDist) {
-                                        if(info.lhsDist > lastIntersection.lhsDist || info.lhsDist < nearestIntersection.lhsDist) {
-                                            nearestIntersection = info;
-                                        }
-                                    } else {
-                                        if(info.lhsDist < nearestIntersection.lhsDist && info.lhsDist > lastIntersection.lhsDist) {
-                                            nearestIntersection = info;
-                                        }
+                                    if(info.lhs.dist < nearestIntersection.lhs.dist && info.lhs.dist > lastIntersection.lhs.dist) {
+                                        nearestIntersection = info;
                                     }
                                 }
+                            }
+                        } else {
+                            //traversing rhs
+                            if (nearestIntersection == null) {
+                                nearestIntersection = info;
                             } else {
-                                //traversing rhs
-                                if (nearestIntersection == null) {
-                                    nearestIntersection = info;
+                                if (nearestIntersection.rhs.dist < lastIntersection.rhs.dist) {
+                                    if (info.rhs.dist > lastIntersection.rhs.dist || info.rhs.dist < nearestIntersection.rhs.dist) {
+                                        nearestIntersection = info;
+                                    }
                                 } else {
-                                    if (nearestIntersection.rhsDist < lastIntersection.rhsDist) {
-                                        if (info.rhsDist > lastIntersection.rhsDist || info.rhsDist < nearestIntersection.rhsDist) {
-                                            nearestIntersection = info;
-                                        }
-                                    } else {
-                                        if (info.rhsDist < nearestIntersection.rhsDist && info.rhsDist > lastIntersection.rhsDist) {
-                                            nearestIntersection = info;
-                                        }
+                                    if (info.rhs.dist < nearestIntersection.rhs.dist && info.rhs.dist > lastIntersection.rhs.dist) {
+                                        nearestIntersection = info;
                                     }
                                 }
                             }
@@ -228,27 +236,28 @@ namespace CSGeom.D2 {
                     }
                 }
 
-                //do what we must with this intersection, we might be dnoe with the loop
+                //do what we must with this intersection, we might be done with the loop
                 if (nearestIntersection == currentLoop.First()) {
                     //loop is done, create the loop with actual segments and such
                     LineLoop loop = new LineLoop();
 
-                    TraversalMode mode = (currentLoop.First().lhsMode == TraversalMode.exiting) ? TraversalMode.lhs : TraversalMode.rhs;
+                    //segment mode
+                    TraversalMode segMode = (currentLoop.First().lhs.mode == TraversalMode.exiting) ? TraversalMode.lhs : TraversalMode.rhs;
                     for (int i = 0; i < currentLoop.Count; i++) {
-                        IntersectionInfo info = currentLoop[i];
-                        IntersectionInfo nextInfo = currentLoop[(i + 1) % currentLoop.Count];
+                        IntersectionPair info = currentLoop[i];
+                        IntersectionPair nextInfo = currentLoop[(i + 1) % currentLoop.Count];
 
                         loop.Add(info.vert);
 
                         //select the correct polygon and loop
-                        WeaklySimplePolygon opPoly = (mode == TraversalMode.lhs) ? lhs : rhs;
-                        int loopIndex = (mode == TraversalMode.lhs) ? info.lhsIndex : info.rhsIndex;
+                        WeaklySimplePolygon opPoly = (segMode == TraversalMode.lhs) ? lhs : rhs;
+                        int loopIndex = (segMode == TraversalMode.lhs) ? info.lhs.index : info.rhs.index;
                         LineLoop opLoop = (loopIndex == -1) ? opPoly.verts : opPoly.holes[loopIndex];
-                        int startSegment = ((mode == TraversalMode.lhs) ? (info.lhsSegment + 1) : info.rhsSegment + 1) % opLoop.Count;
-                        int endSegment = (mode == TraversalMode.lhs) ? nextInfo.lhsSegment : nextInfo.rhsSegment;
+                        int startSegment = ((segMode == TraversalMode.lhs) ? (info.lhs.segment + 1) : info.rhs.segment + 1) % opLoop.Count;
+                        int endSegment = (segMode == TraversalMode.lhs) ? nextInfo.lhs.segment : nextInfo.rhs.segment;
                         int endSegmentPlusOneMod = (endSegment + 1) % opLoop.Count;
 
-                        bool first = (mode == TraversalMode.lhs) ? (info.lhsDist > nextInfo.lhsDist) : (info.rhsDist > nextInfo.rhsDist);
+                        bool first = (segMode == TraversalMode.lhs) ? (info.lhs.dist > nextInfo.lhs.dist) : (info.rhs.dist > nextInfo.rhs.dist);
                         for(int currentSegment = startSegment;
                             (currentSegment != endSegmentPlusOneMod) || first;
                             currentSegment = (currentSegment + 1) % opLoop.Count) {
@@ -256,23 +265,18 @@ namespace CSGeom.D2 {
                             if (first) first = false;
                         }
                         
-                        if (mode == TraversalMode.lhs) mode = TraversalMode.rhs; else mode = TraversalMode.lhs;
+                        if (segMode == TraversalMode.lhs) segMode = TraversalMode.rhs; else segMode = TraversalMode.lhs;
                     }
 
                     res.holes.Add(loop);
 
-                    foreach (IntersectionInfo info in currentLoop) intersections.Remove(info);
+                    foreach (IntersectionPair info in currentLoop) ir.intersections.Remove(info);
                     currentLoop.Clear();
                 } else {
                     currentLoop.Add(nearestIntersection);
                 }
             }
-
-
-
-
-
-
+            
             return res;
         }
 

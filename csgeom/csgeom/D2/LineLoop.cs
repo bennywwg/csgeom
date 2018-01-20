@@ -45,6 +45,25 @@ namespace CSGeom.D2 {
 
         public double Area => -Integral_y_dx * 0.5;
 
+        //this is actually really slow right now
+        bool _bounds_needsUpdate;
+        aabb _bounds;
+        public aabb Bounds {
+            get {
+                if(_bounds_needsUpdate) {
+                    _bounds = aabb.OppositeInfinities();
+                    foreach (gvec2 vert in data) {
+                        if (vert.x < _bounds.ll.x) _bounds.ll.x = vert.x;
+                        if (vert.y < _bounds.ll.y) _bounds.ll.y = vert.y;
+                        if (vert.x > _bounds.ur.x) _bounds.ur.x = vert.x;
+                        if (vert.y > _bounds.ur.y) _bounds.ur.y = vert.x;
+                    }
+                    _bounds_needsUpdate = false;
+                }
+                return _bounds;
+            }
+        }
+
         public bool IsSimple() {
             for (int i = 0; i < Count; i++) {
                 int iw0 = i % Count;
@@ -81,37 +100,45 @@ namespace CSGeom.D2 {
             set {
                 data[index] = value;
                 _integralccw_needsUpdate = true;
+                _bounds_needsUpdate = true;
             }
         }
         public void Add(gvec2 vert) {
             data.Add(vert);
             _integralccw_needsUpdate = true;
+            _bounds_needsUpdate = true;
         }
         public void Insert(gvec2 vert, int index) {
             data.Insert(index, vert);
             _integralccw_needsUpdate = true;
+            _bounds_needsUpdate = true;
         }
         public void Remove(int index) {
             data.RemoveAt(index);
             _integralccw_needsUpdate = true;
+            _bounds_needsUpdate = true;
         }
         public void Clear() {
             data.Clear();
             _integralccw_needsUpdate = false;
-            _integralccw = 0;
+            _bounds_needsUpdate = true;
         }
         public int Count => data.Count;
 
         public bool IsInside(gvec2 point) {
-            gvec2 endOfRay = point + new gvec2(10000.0, 10000.0);
-            bool inside = false;
-            for (int i = 0; i < Count; i++) {
-                gvec2 ignoreThis = gvec2.zero;
-                if (Math2.SegmentsIntersecting(this[i], this[(i + 1 == Count) ? 0 : i + 1], point, endOfRay, ref ignoreThis)) {
-                    inside = !inside;
+            if (Bounds.IsInside(point)) {
+                gvec2 endOfRay = point + new gvec2(10000.0, 10000.0);
+                bool inside = false;
+                for (int i = 0; i < Count; i++) {
+                    gvec2 ignoreThis = gvec2.zero;
+                    if (Math2.SegmentsIntersecting(this[i], this[(i + 1 == Count) ? 0 : i + 1], point, endOfRay, ref ignoreThis)) {
+                        inside = !inside;
+                    }
                 }
+                return inside;
+            } else {
+                return false;
             }
-            return inside;
         }
 
         public List<gvec2> Data() {
@@ -126,9 +153,12 @@ namespace CSGeom.D2 {
             for (int i = reverse1 ? loop1.Count : 0; reverse1 ? i >= 0 : i <= loop1.Count; i += reverse1 ? -1 : 1) {
                 res.Add(loop1[(i + index1) % loop1.Count]);
             }
-            return new LineLoop(res, true, 0);
+            return new LineLoop(res, true, 0, true, aabb.OppositeInfinities());
         }
 
+        public bool BroadphaseOther(LineLoop other) {
+            return Bounds.Intersects(other.Bounds);
+        }
         public bool IntersectsAny(gvec2 p0, gvec2 p1) {
             for (int i0 = 0; i0 < Count; i0++) {
                 int i1 = (i0 + 1) % Count;
@@ -195,7 +225,6 @@ namespace CSGeom.D2 {
             return res.OrderByDescending(tuple => -tuple.Item3).ToList();
         }
 
-
         public struct LoopLoopIntersection {
             public gvec2 position;
             public int lhsIndex;
@@ -204,29 +233,33 @@ namespace CSGeom.D2 {
             public double rhsParam;
         }
         public static List<LoopLoopIntersection> AllIntersections(LineLoop lhs, LineLoop rhs) {
-            List<LoopLoopIntersection> res = new List<LoopLoopIntersection>();
-            for (int i = 0; i < lhs.Count; i++) {
-                gvec2 a0 = lhs[i];
-                gvec2 a1 = lhs[((i + 1) == lhs.Count) ? 0 : i + 1];
-                for (int j = 0; j < rhs.Count; j++) {
-                    gvec2 b0 = rhs[j];
-                    gvec2 b1 = rhs[((j + 1) == rhs.Count) ? 0 : j + 1];
+            if (lhs.BroadphaseOther(rhs)) {
+                List<LoopLoopIntersection> res = new List<LoopLoopIntersection>();
+                for (int i = 0; i < lhs.Count; i++) {
+                    gvec2 a0 = lhs[i];
+                    gvec2 a1 = lhs[((i + 1) == lhs.Count) ? 0 : i + 1];
+                    for (int j = 0; j < rhs.Count; j++) {
+                        gvec2 b0 = rhs[j];
+                        gvec2 b1 = rhs[((j + 1) == rhs.Count) ? 0 : j + 1];
 
 
-                    double param0 = 0, param1 = 0;
-                    gvec2 intersection = new gvec2();
-                    if(Math2.SegmentsIntersecting(a0, a1, b0, b1, ref intersection, ref param0, ref param1)) {
-                        res.Add(new LoopLoopIntersection {
-                            position = intersection,
-                            lhsIndex = i,
-                            rhsIndex = j,
-                            lhsParam = param0,
-                            rhsParam = param1
-                        });
+                        double param0 = 0, param1 = 0;
+                        gvec2 intersection = new gvec2();
+                        if (Math2.SegmentsIntersecting(a0, a1, b0, b1, ref intersection, ref param0, ref param1)) {
+                            res.Add(new LoopLoopIntersection {
+                                position = intersection,
+                                lhsIndex = i,
+                                rhsIndex = j,
+                                lhsParam = param0,
+                                rhsParam = param1
+                            });
+                        }
                     }
                 }
+                return res;
+            } else {
+                return new List<LoopLoopIntersection>();
             }
-            return res;
         }
 
         public void Reverse() {
@@ -243,7 +276,7 @@ namespace CSGeom.D2 {
         }
 
         public static LineLoop Raw(List<gvec2> rawData) {
-            return new LineLoop(rawData ?? new List<gvec2>(), true, 0);
+            return new LineLoop(rawData ?? new List<gvec2>(), true, 0, true, aabb.OppositeInfinities());
         }
 
         public TriangulationResult2 Triangulate() {
@@ -315,16 +348,18 @@ namespace CSGeom.D2 {
             }
         }
 
-        LineLoop(List<gvec2> data, bool _integralccw_needsUpdate, double _integralccw) {
+        LineLoop(List<gvec2> data, bool _integralccw_needsUpdate, double _integralccw, bool _bounds_needsUpdate, aabb _bounds) {
             this.data = data;
             this._integralccw_needsUpdate = _integralccw_needsUpdate;
             this._integralccw = _integralccw;
+            this._bounds_needsUpdate = _bounds_needsUpdate;
+            this._bounds = _bounds;
         }
-        public LineLoop() : this(new List<gvec2>(), false, 0) {
+        public LineLoop() : this(new List<gvec2>(), false, 0, false, aabb.OppositeInfinities()) {
         }
-        public LineLoop(gvec2[] data) : this((data != null) ? new List<gvec2>(data) : new List<gvec2>(), true, 0) {
+        public LineLoop(gvec2[] data) : this((data != null) ? new List<gvec2>(data) : new List<gvec2>(), true, 0, true, aabb.OppositeInfinities()) {
         }
-        public LineLoop(IEnumerable<gvec2> data) : this((data != null) ? data.ToList() : new List<gvec2>(), true, 0) {
+        public LineLoop(IEnumerable<gvec2> data) : this((data != null) ? data.ToList() : new List<gvec2>(), true, 0, true, aabb.OppositeInfinities()) {
         }
     }
 }

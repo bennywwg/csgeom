@@ -77,7 +77,7 @@ namespace csgeom_test {
 
             //draw intersections
             {
-                List<WeaklySimplePolygon.IntersectionInfo> info = WeaklySimplePolygon.GetIntersectionInfo(poly, other);
+                List<WeaklySimplePolygon.IntersectionPair> info = WeaklySimplePolygon.GetIntersectionInfo(poly, other).intersections;
 
                 Mesh square = Mesh.ColoredRectangle(new vec2(0.02f, 0.02f), Util.Red);
                 square.Translate(new vec3(-0.01f, -0.01f, 0f));

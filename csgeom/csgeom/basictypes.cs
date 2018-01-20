@@ -4,10 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CSGeom {
 #pragma warning disable IDE1006 // Naming Styles
+namespace CSGeom {
     public struct gvec2 : IEquatable<gvec2> {
-#pragma warning restore IDE1006 // Naming Styles
         public double x, y;
 
         public double Length => Math.Sqrt(Length2);
@@ -82,10 +81,8 @@ namespace CSGeom {
                    y == other.y;
         }
     }
-
-#pragma warning disable IDE1006 // Naming Styles
+    
     public struct gvec3 {
-#pragma warning restore IDE1006 // Naming Styles
         public double x, y, z;
 
         public double Length => Math.Sqrt(Length2);
@@ -148,4 +145,25 @@ namespace CSGeom {
             return "<" + x.ToString("#####0.00") + "," + y.ToString("#####0.00") + "," + z.ToString("#####0.00") + ">";
         }
     }
+
+    public struct aabb {
+        public gvec2 ll, ur;
+
+
+        public static aabb OppositeInfinities() {
+            return new aabb {
+                ll = new gvec2(double.PositiveInfinity, double.PositiveInfinity),
+                ur = new gvec2(double.NegativeInfinity, double.NegativeInfinity)
+            };
+        }
+
+        public bool IsInside(gvec2 point) {
+            return point.x >= ll.x && point.x < ur.x && point.y >= ll.y && point.y < ur.y;
+        }
+        public bool Intersects(aabb other) {
+            return ur.x > other.ll.x && ll.x < ur.x && ur.y > other.ll.y && ll.y < ur.y;
+        }
+    }
 }
+
+#pragma warning restore IDE1006 // Naming Styles
