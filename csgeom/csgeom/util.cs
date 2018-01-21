@@ -6,6 +6,32 @@ using System.Threading.Tasks;
 
 namespace CSGeom {
     public static class Math2 {
+        public static bool SegmentsIntersecting(gvec2 p0, gvec2 p1, gvec2 pa, gvec2 pb) {
+            gvec2 dir0 = p1 - p0;
+            gvec2 dir1 = pb - pa;
+
+            {
+                gvec2 dir0n = dir0.Normalized;
+                gvec2 dir1n = dir1.Normalized;
+
+                if ((dir0n.x.cmp(dir1n.x) && dir0n.y.cmp(dir1n.y)) || (dir0n.x.cmp(-dir1n.x) && dir0n.y.cmp(-dir1n.y))) return false;
+            }
+
+            double t0 =
+                ((dir1.x) * (p0.y - pa.y) - (dir1.y) * (p0.x - pa.x)) /
+                ((dir1.y) * (dir0.x) - (dir1.x) * (dir0.y));
+
+            if (t0 < 0 || t0 >= 1) return false;
+
+            double t1 =
+                ((dir0.x) * (p0.y - pa.y) - (dir0.y) * (p0.x - pa.x)) /
+                ((dir1.y) * (dir0.x) - (dir1.x) * (dir0.y));
+
+            if (t1 < 0 || t1 >= 1) return false;
+
+            return true;
+        }
+
         public static bool SegmentsIntersecting(gvec2 p0, gvec2 p1, gvec2 pa, gvec2 pb, ref gvec2 intersection) {
             gvec2 dir0 = p1 - p0;
             gvec2 dir1 = pb - pa;

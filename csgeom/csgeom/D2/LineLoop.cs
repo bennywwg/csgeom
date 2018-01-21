@@ -196,6 +196,20 @@ namespace CSGeom.D2 {
             }
             return false;
         }
+        public bool IntersectsOther(LineLoop other) {
+            if(BroadphaseOther(other)) {
+                for (int i = 0; i < Count; i++) {
+                    gvec2 this0 = this[i];
+                    gvec2 this1 = this[(i + 1) % Count];
+                    for (int u = 0; u < other.Count; u++) {
+                        gvec2 other0 = other[u];
+                        gvec2 other1 = other[(u + 1) % Count];
+                        if (Math2.SegmentsIntersecting(this0, this1, other0, other1)) return true;
+                    }
+                }
+            }
+            return false;
+        }
         public List<KeyValuePair<int, gvec2>> AllIntersectionsBySegment(gvec2 p0, gvec2 p1) {
             List<KeyValuePair<int, gvec2>> res = new List<KeyValuePair<int, gvec2>>();
             for (int i = 0; i < Count; i++) {

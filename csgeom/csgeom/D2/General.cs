@@ -7,6 +7,16 @@ namespace CSGeom.D2 {
         public LineLoop verts;
         public List<LineLoop> holes;
 
+        public bool IsInside(gvec2 point) {
+            if(verts.IsInside(point)) {
+                foreach(LineLoop loop in holes) {
+                    if (loop.IsInside(point)) return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
         static bool AnyIntersections(LineLoop[] loops, int vert0LoopIndex, int vert0Index, int vert1LoopIndex, int vert1Index) {
             gvec2 p0 = loops[vert0LoopIndex][vert0Index];
             gvec2 p1 = loops[vert1LoopIndex][vert1Index];
@@ -132,16 +142,16 @@ namespace CSGeom.D2 {
         }
         public class IntersectionResolution {
             public List<IntersectionPair> intersections;
-            public Dictionary<int, int> lhs;
-            public Dictionary<int, int> rhs;
+            public Dictionary<int, List<int>> lhs;
+            public Dictionary<int, List<int>> rhs;
         }
         public static IntersectionResolution GetIntersectionInfo(WeaklySimplePolygon lhs, WeaklySimplePolygon rhs) {
             IntersectionResolution res = new IntersectionResolution {
                 intersections = new List<IntersectionPair>(),
-                lhs = new Dictionary<int, int>(),
-                rhs = new Dictionary<int, int>()
+                lhs = new Dictionary<int, List<int>>(),
+                rhs = new Dictionary<int, List<int>>()
             };
-            
+
             //-1 just refers to verts and not an index into holes
             for (int i = -1; i < lhs.holes.Count; i++) {
                 LineLoop lhsLoop = (i == -1) ? lhs.verts : lhs.holes[i];
@@ -172,8 +182,10 @@ namespace CSGeom.D2 {
                             }
                         });
 
-                        res.lhs[info.lhsIndex] = res.intersections.Count - 1;
-                        res.rhs[info.rhsIndex] = res.intersections.Count - 1;
+                        if(!res.lhs.ContainsKey(i)) res.lhs[i] = new List<int>();
+                        res.lhs[i].Add(res.intersections.Count - 1);
+                        if (!res.rhs.ContainsKey(j)) res.rhs[j] = new List<int>();
+                        res.rhs[j].Add(res.intersections.Count - 1);
                     }
                 }
             }
@@ -182,14 +194,22 @@ namespace CSGeom.D2 {
         }
         public static WeaklySimplePolygon Union(WeaklySimplePolygon lhs, WeaklySimplePolygon rhs) {
             WeaklySimplePolygon res = new WeaklySimplePolygon();
-            
-            //preprocessing
-
 
             IntersectionResolution ir = GetIntersectionInfo(lhs, rhs);
 
+            //preprocessing
+            for (int i = -1; i < lhs.holes.Count; i++) {
+                if(i == -1 && (!ir.lhs.ContainsKey(-1)) && !rhs.IsInside(lhs.verts[0])) {
+                    
+                }
+                //if(ir.lhs.ContainsKey()
+            }
+
+
             List<IntersectionPair> currentLoop = new List<IntersectionPair>();
 
+            //this loop finds the next IntersectionPair in the loop
+            //and when a loop is complete, outputs it into res
             while(ir.intersections.Count != 0) {
                 //start off a random pair if we need to
                 if (currentLoop.Count == 0) {
@@ -200,6 +220,7 @@ namespace CSGeom.D2 {
                 IntersectionPair nearestIntersection = null;
                 IntersectionPair lastIntersection = currentLoop.Last();
                 TraversalMode mode = (lastIntersection.lhs.mode == TraversalMode.exiting) ? TraversalMode.lhs : TraversalMode.rhs;
+                //Dictionary<int, int> nextQueue = 
                 
                 foreach (IntersectionPair info in ir.intersections) {
                     if (info.lhs.index == lastIntersection.lhs.index && info.rhs.index == lastIntersection.rhs.index && info != lastIntersection) {
@@ -294,6 +315,24 @@ namespace CSGeom.D2 {
         public WeaklySimplePolygon() {
             verts = new LineLoop();
             holes = new List<LineLoop>();
+        }
+    }
+
+    public class Polygon {
+        public class Node {
+            public LineLoop loop;
+            public List<Node> children;
+        }
+        public List<Node> independentNodes;
+
+        
+
+        public void AddLoop(LineLoop newLoop) {
+            
+        }
+
+        public Polygon() {
+            independentNodes = new List<Node>();
         }
     }
 }
