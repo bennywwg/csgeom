@@ -6,6 +6,11 @@ using System.Threading.Tasks;
 
 #pragma warning disable IDE1006 // Naming Styles
 namespace CSGeom {
+    public interface DiscreteBooleanSpace {
+        bool IsPointInside(gvec2 point);
+    }
+    
+
     public struct gvec2 : IEquatable<gvec2> {
         public double x, y;
 
@@ -18,6 +23,10 @@ namespace CSGeom {
         }
         public static double Cross(gvec2 lhs, gvec2 rhs) {
             return lhs.x * rhs.y - lhs.y * rhs.x;
+        }
+
+        public bool IsInside(DiscreteBooleanSpace area) {
+            return area.IsPointInside(this);
         }
 
         public static gvec2 Interpolate(gvec2 a, gvec2 b, double a_to_b) {
@@ -146,9 +155,8 @@ namespace CSGeom {
         }
     }
 
-    public struct aabb {
+    public struct aabb : DiscreteBooleanSpace {
         public gvec2 ll, ur;
-
 
         public static aabb OppositeInfinities() {
             return new aabb {
@@ -157,11 +165,14 @@ namespace CSGeom {
             };
         }
 
-        public bool IsInside(gvec2 point) {
+        public bool IsPointInside(gvec2 point) {
             return point.x >= ll.x && point.x < ur.x && point.y >= ll.y && point.y < ur.y;
         }
         public bool Intersects(aabb other) {
             return ur.x > other.ll.x && ll.x < ur.x && ur.y > other.ll.y && ll.y < ur.y;
+        }
+        public bool IsInside(aabb other) {
+            return ll.x > other.ll.x && ll.y > other.ll.y && ur.x < other.ur.x && ur.y < other.ur.y;
         }
     }
 }

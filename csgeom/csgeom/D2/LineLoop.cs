@@ -17,7 +17,7 @@ namespace CSGeom.D2 {
         public TriangulationCode code;
     }
 
-    public class LineLoop {
+    public class LineLoop : DiscreteBooleanSpace {
         List<gvec2> data;
 
         bool _integralccw_needsUpdate;
@@ -125,8 +125,12 @@ namespace CSGeom.D2 {
         }
         public int Count => data.Count;
 
-        public bool IsInside(gvec2 point) {
-            if (Bounds.IsInside(point)) {
+        public bool IsInsideOther(LineLoop other) {
+            if (Count == 0) throw new Exception("Not sure what to do here, should an empty LineLoop always be inside or outside?");
+            return this[0].IsInside(other) && IntersectsOther(other);
+        }
+        public bool IsPointInside(gvec2 point) {
+            if (point.IsInside(Bounds)) {
                 gvec2 endOfRay = point + new gvec2(10000.0, 10000.0);
                 bool inside = false;
                 for (int i = 0; i < Count; i++) {
@@ -156,7 +160,7 @@ namespace CSGeom.D2 {
             return new LineLoop(res, true, 0, true, aabb.OppositeInfinities());
         }
 
-        public bool BroadphaseOther(LineLoop other) {
+        public bool IntersectsOtherBroadphase(LineLoop other) {
             return Bounds.Intersects(other.Bounds);
         }
         public bool IntersectsAny(gvec2 p0, gvec2 p1) {
@@ -197,7 +201,7 @@ namespace CSGeom.D2 {
             return false;
         }
         public bool IntersectsOther(LineLoop other) {
-            if(BroadphaseOther(other)) {
+            if(IntersectsOtherBroadphase(other)) {
                 for (int i = 0; i < Count; i++) {
                     gvec2 this0 = this[i];
                     gvec2 this1 = this[(i + 1) % Count];
@@ -247,7 +251,7 @@ namespace CSGeom.D2 {
             public double rhsParam;
         }
         public static List<LoopLoopIntersection> AllIntersections(LineLoop lhs, LineLoop rhs) {
-            if (lhs.BroadphaseOther(rhs)) {
+            if (lhs.IntersectsOtherBroadphase(rhs)) {
                 List<LoopLoopIntersection> res = new List<LoopLoopIntersection>();
                 for (int i = 0; i < lhs.Count; i++) {
                     gvec2 a0 = lhs[i];

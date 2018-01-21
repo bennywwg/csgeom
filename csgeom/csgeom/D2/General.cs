@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace CSGeom.D2 {
-    public class WeaklySimplePolygon {
+    public class WeaklySimplePolygon : DiscreteBooleanSpace {
         public LineLoop verts;
         public List<LineLoop> holes;
 
-        public bool IsInside(gvec2 point) {
-            if(verts.IsInside(point)) {
+        public bool IsPointInside(gvec2 point) {
+            if(point.IsInside(verts)) {
                 foreach(LineLoop loop in holes) {
-                    if (loop.IsInside(point)) return false;
+                    if (point.IsInside(loop)) return false;
                 }
                 return true;
             }
@@ -199,7 +199,7 @@ namespace CSGeom.D2 {
 
             //preprocessing
             for (int i = -1; i < lhs.holes.Count; i++) {
-                if(i == -1 && (!ir.lhs.ContainsKey(-1)) && !rhs.IsInside(lhs.verts[0])) {
+                if(i == -1 && (!ir.lhs.ContainsKey(-1)) && !lhs.verts[0].IsInside(rhs)) {
                     
                 }
                 //if(ir.lhs.ContainsKey()
@@ -320,15 +320,49 @@ namespace CSGeom.D2 {
 
     public class Polygon {
         public class Node {
+            public Node parent;
             public LineLoop loop;
             public List<Node> children;
+
+            public Node FindLowestEnclosing(LineLoop l) {
+                if(l.IsInsideOther(loop)) {
+                    foreach(Node child in children) {
+                        Node childLowest = child.FindLowestEnclosing(l);
+                        if (childLowest != null) return childLowest;
+                    }
+                    return this;
+                }
+                return null;
+            }
+
+            public Node(Node parent) {
+                this.parent = parent;
+                this.children = new List<Node>();
+            }
         }
         public List<Node> independentNodes;
 
-        
+       
+        public void RemoveLoop(LineLoop toRemove) {
 
+        }
         public void AddLoop(LineLoop newLoop) {
-            
+            Node enclosingNode = null;
+            foreach (Node n in independentNodes) {
+                enclosingNode = n.FindLowestEnclosing(newLoop);
+                if (enclosingNode != null) break;
+            }
+            if(enclosingNode == null) {
+                independentNodes.Add(new Node(null) {
+                    loop = newLoop,
+                    children = new List<Node>()
+                });
+            } else {
+                enclosingNode.children.Add(new Node(null) {
+                    loop = newLoop,
+                    children = new List<Node>()
+                });
+            }
         }
 
         public Polygon() {
