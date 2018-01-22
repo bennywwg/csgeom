@@ -340,8 +340,13 @@ namespace CSGeom.D2 {
                 this.children = new List<Node>();
             }
         }
-        public List<Node> independentNodes;
+        public Node BaseNode;
 
+        public bool IsWellFormed {
+            get {
+                return true;
+            }
+        }
        
         public void RemoveLoop(LineLoop toRemove) {
 
@@ -358,7 +363,7 @@ namespace CSGeom.D2 {
                     children = new List<Node>()
                 });
             } else {
-                enclosingNode.children.Add(new Node(null) {
+                enclosingNode.children.Add(new Node(enclosingNode) {
                     loop = newLoop,
                     children = new List<Node>()
                 });
@@ -366,7 +371,9 @@ namespace CSGeom.D2 {
         }
 
         public Polygon() {
-            independentNodes = new List<Node>();
+            BaseNode = new Node(null) {
+                loop = null
+            };
         }
     }
 }
