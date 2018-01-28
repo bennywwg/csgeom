@@ -322,21 +322,26 @@ namespace CSGeom.D2 {
         public class PolygonNode {
             public PolygonNode parent;
             public readonly LineLoop loop;
-            public List<PolygonNode> children;
+            public readonly List<PolygonNode> children;
 
-            public bool IntersectsAny(LineLoop l) {
-                if (l.IntersectsOther(loop)) {
+            public bool IsWellFormed(WindingDir correctDir) {
+                if(loop.Winding == correctDir) {
+                    WindingDir nextDir = (correctDir == WindingDir.ccw) ? WindingDir.cw : WindingDir.ccw;
+
+                    foreach(PolygonNode n in children) {
+                        if (!n.IsWellFormed(nextDir)) return false;
+                    }
+
                     return true;
                 } else {
-                    foreach (PolygonNode n in children) {
-                        if (n.IntersectsAny(l)) return true;
-                    }
                     return false;
                 }
             }
-            //find the highest node enclosed by lineloop l
-            //doesn't check for intersections
-            protected virtual List<PolygonNode> FindHighestNodeEnclosedBy(LineLoop l) {
+            public List<WeaklySimplePolygon> AccumulateWeaklySimplyPolygons(List<WeaklySimplePolygon> accumulator) {
+
+            }
+            
+            public List<PolygonNode> FindHighestNodeEnclosedBy(LineLoop l) {
                 List<PolygonNode> found = new List<PolygonNode>();
                 foreach (PolygonNode n in children) {
                     if (n.loop.IsInsideOther(l)) {
@@ -353,19 +358,39 @@ namespace CSGeom.D2 {
                 }
                 return null;
             }
-            //find the lowest node enclosing this lineloop
-            //doesn't check of intersections
-            protected virtual PolygonNode FindLowestNodeEnclosing(LineLoop l) {
+            public PolygonNode FindLowestNodeEnclosing(LineLoop l) {
                 if (l.IsInsideOther(loop)) {
-                    foreach (PolygonNode child in children) {
-                        PolygonNode childLowest = child.FindLowestNodeEnclosing(l);
-                        if (childLowest != null) return childLowest;
+                    foreach(PolygonNode n in children) {
+                        PolygonNode lowest = n.FindLowestNodeEnclosing(l);
+                        if (lowest != null) return lowest;
                     }
                     return this;
+                } else {
+                    return null;
                 }
-                return null;
             }
 
+            public bool ContainsLoop(LineLoop l) {
+                if (loop == l) return true;
+                foreach (PolygonNode n in children) if (n.ContainsLoop(l)) return true;
+                return false;
+            }
+            public bool AnyIntersects(LineLoop l) {
+                if (l.IntersectsOther(loop)) {
+                    return true;
+                } else {
+                    foreach (PolygonNode n in children) {
+                        if (n.AnyIntersects(l)) return true;
+                    }
+                    return false;
+                }
+            }
+
+            public void ChangeParent(PolygonNode newParent) {
+                if(parent != null) parent.children.Remove(this);
+                if(newParent != null) newParent.children.Add(this);
+                parent = newParent;
+            }
             
             public PolygonNode(LineLoop loop, PolygonNode parent) {
                 this.loop = loop;
@@ -373,57 +398,84 @@ namespace CSGeom.D2 {
                 this.children = new List<PolygonNode>();
             }
         }
-        public class PolygonNodeBase : PolygonNode {
-            public void InsertLoop(LineLoop l) {
 
+        public List<PolygonNode> FindHighestNodeEnclosedBy(LineLoop l) {
+            List<PolygonNode> found = new List<PolygonNode>();
+            foreach (PolygonNode n in nodes) {
+                if (n.loop.IsInsideOther(l)) {
+                    found.Add(n);
+                }
             }
-
-            protected override List<PolygonNode> FindHighestNodeEnclosedBy(LineLoop l) {
-                return base.FindHighestNodeEnclosedBy(l);
-            }
-            protected override PolygonNode FindLowestNodeEnclosing(LineLoop l) {
-                return base.FindLowestNodeEnclosing(l);
-            }
-
-            public PolygonNodeBase() : base(null, null) {
-                
+            if (found.Count != 0) {
+                return found;
+            } else {
+                foreach (PolygonNode n in nodes) {
+                    found = n.FindHighestNodeEnclosedBy(l);
+                    if (found != null) return found;
+                }
+                return null;
             }
         }
-        
-        public PolygonNode BaseNode;
+        public PolygonNode FindLowestNodeEnclosing(LineLoop l) {
+            foreach (PolygonNode n in nodes) {
+                PolygonNode lowest = n.FindLowestNodeEnclosing(l);
+                if (lowest != null) return lowest;
+            }
+            return null;
+        }
+
+        public bool ContainsLoop(LineLoop l) {
+            foreach (PolygonNode n in nodes) if (n.ContainsLoop(l)) return true;
+            return false;
+        }
+        public bool AnyIntersects(LineLoop l) {
+            foreach (PolygonNode n in nodes) {
+                if (n.AnyIntersects(l)) return true;
+            }
+            return false;
+        }
+
+        public void InsertLoop(LineLoop l) {
+            if (!AnyIntersects(l) && !ContainsLoop(l)) {
+                PolygonNode lowestEnclosingLoop = FindLowestNodeEnclosing(l);
+                List<PolygonNode> highestEnclosedByLoop = FindHighestNodeEnclosedBy(l);
+                if (lowestEnclosingLoop == null) {
+                    nodes.Add(new PolygonNode(l, null));
+                } else {
+                    lowestEnclosingLoop.children.Add(new PolygonNode(l, lowestEnclosingLoop));
+                }
+                if (highestEnclosedByLoop != null) {
+                    foreach (PolygonNode n in highestEnclosedByLoop) {
+                        n.ChangeParent(null);
+                    }
+                }
+            } else {
+                throw new Exception("Loop to be added intersects pre-existing loops");
+            }
+        }
+
+        public readonly List<PolygonNode> nodes;
+
 
         public bool IsWellFormed {
             get {
+                foreach(PolygonNode n in nodes) {
+                    if (!n.IsWellFormed(WindingDir.ccw)) return false;
+                }
+
                 return true;
             }
         }
-       
-        public void RemoveLoop(LineLoop toRemove) {
 
-        }
-        public void AddLoop(LineLoop newLoop) {
-            PolygonNode enclosingNode = null;
-            foreach (PolygonNode n in independentNodes) {
-                enclosingNode = n.FindLowestNodeEnclosing(newLoop);
-                if (enclosingNode != null) break;
-            }
-            if(enclosingNode == null) {
-                independentNodes.Add(new PolygonNode(null) {
-                    loop = newLoop,
-                    children = new List<PolygonNode>()
-                });
-            } else {
-                enclosingNode.children.Add(new PolygonNode(enclosingNode) {
-                    loop = newLoop,
-                    children = new List<PolygonNode>()
-                });
+        public List<WeaklySimplePolygon> Simplify() {
+            if(IsWellFormed) {
+                
             }
         }
+
 
         public Polygon() {
-            BaseNode = new PolygonNode(null) {
-                loop = null
-            };
+            nodes = new List<PolygonNode>();
         }
     }
 }
