@@ -20,13 +20,13 @@ Project Status: Preliminary Design Stage
 
 ### In 2D:
 
-  * Describe a simple polygon with holes (referred to as a polygon)
-  * Triangulate a polygon
-  * Find area of a polygon
-  * Find center of area of a polygon
-  * Find area moment of inertia of a polygon about a point
-  * Perform boolean operations on polygons
-  * Transform a polygon with matrix multiplication (translate, scale, shear, rotate)
+  * Describe a simple polygon with holes (referred to as a polygon) (Mostly Done!)
+  * Triangulate a polygon (Mostly Done!)
+  * Find area of a polygon (Mostly Done!)
+  * Find center of area of a polygon (Mostly Done!)
+  * Find area moment of inertia of a polygon about a point (Not Started)
+  * Perform boolean operations on polygons (Partially done)
+  * Transform a polygon with matrix multiplication (translate, scale, shear, rotate) (Mostly Done!)
   
 ### In 3D:
 
