@@ -123,6 +123,33 @@ namespace csgeom_test {
 
 
         public static void Main(string[] stdin) {
+
+            CSGeom.D2.Polygon p = new CSGeom.D2.Polygon();
+
+            p.InsertLoop(new CSGeom.D2.LineLoop(new CSGeom.gvec2[] {
+                new CSGeom.gvec2(0.0, 0.0),
+                new CSGeom.gvec2(4.0, 0.0),
+                new CSGeom.gvec2(4.0, 4.0),
+                new CSGeom.gvec2(0.0, 4.0),
+            }));
+            p.InsertLoop(new CSGeom.D2.LineLoop(new CSGeom.gvec2[] {
+                new CSGeom.gvec2(1.0, 1.0),
+                new CSGeom.gvec2(1.0, 3.0),
+                new CSGeom.gvec2(3.0, 3.0),
+                new CSGeom.gvec2(3.0, 1.0),
+            }));
+
+            List<CSGeom.D2.WeaklySimplePolygon> output = p.Simplify();
+
+
+
+
+
+
+            
+
+            return;
+
             Initialize();
             SetupUI();
 

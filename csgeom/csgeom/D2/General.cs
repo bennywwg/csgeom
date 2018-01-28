@@ -337,8 +337,21 @@ namespace CSGeom.D2 {
                     return false;
                 }
             }
-            public List<WeaklySimplePolygon> AccumulateWeaklySimplyPolygons(List<WeaklySimplePolygon> accumulator) {
-
+            public void AccumulateWeaklySimplyPolygons(List<WeaklySimplePolygon> accumulator = null) {
+                if(accumulator == null) {
+                    accumulator = new List<WeaklySimplePolygon>();
+                }
+                if(loop.Winding == WindingDir.ccw) {
+                    WeaklySimplePolygon p = new WeaklySimplePolygon();
+                    p.verts = loop;
+                    foreach (PolygonNode n in children) {
+                        p.holes.Add(n.loop);
+                    }
+                    accumulator.Add(p);
+                }
+                foreach(PolygonNode n in children) {
+                    AccumulateWeaklySimplyPolygons(accumulator);
+                }
             }
             
             public List<PolygonNode> FindHighestNodeEnclosedBy(LineLoop l) {
@@ -468,8 +481,14 @@ namespace CSGeom.D2 {
         }
 
         public List<WeaklySimplePolygon> Simplify() {
-            if(IsWellFormed) {
-                
+            if (IsWellFormed) {
+                List<WeaklySimplePolygon> res = new List<WeaklySimplePolygon>();
+                foreach (PolygonNode n in nodes) {
+                    n.AccumulateWeaklySimplyPolygons(res);
+                }
+                return res;
+            } else {
+                throw new Exception("Can't Simplify an ill-formed Polygon");
             }
         }
 
