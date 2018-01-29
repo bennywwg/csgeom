@@ -143,12 +143,7 @@ namespace csgeom_test {
 
 
 
-
-
-
             
-
-            return;
 
             Initialize();
             SetupUI();

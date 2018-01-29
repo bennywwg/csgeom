@@ -337,10 +337,7 @@ namespace CSGeom.D2 {
                     return false;
                 }
             }
-            public void AccumulateWeaklySimplyPolygons(List<WeaklySimplePolygon> accumulator = null) {
-                if(accumulator == null) {
-                    accumulator = new List<WeaklySimplePolygon>();
-                }
+            public void AccumulateWeaklySimplyPolygons(List<WeaklySimplePolygon> accumulator) {
                 if(loop.Winding == WindingDir.ccw) {
                     WeaklySimplePolygon p = new WeaklySimplePolygon();
                     p.verts = loop;
@@ -350,7 +347,7 @@ namespace CSGeom.D2 {
                     accumulator.Add(p);
                 }
                 foreach(PolygonNode n in children) {
-                    AccumulateWeaklySimplyPolygons(accumulator);
+                    n.AccumulateWeaklySimplyPolygons(accumulator);
                 }
             }
             

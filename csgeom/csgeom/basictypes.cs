@@ -169,7 +169,7 @@ namespace CSGeom {
             return point.x >= ll.x && point.x < ur.x && point.y >= ll.y && point.y < ur.y;
         }
         public bool Intersects(aabb other) {
-            return ur.x > other.ll.x && ll.x < ur.x && ur.y > other.ll.y && ll.y < ur.y;
+            return !(ll.x > other.ur.x && ur.x < other.ll.x) && !(ll.y > other.ur.y && ur.y < other.ll.y);
         }
         public bool IsInside(aabb other) {
             return ll.x > other.ll.x && ll.y > other.ll.y && ur.x < other.ur.x && ur.y < other.ur.y;

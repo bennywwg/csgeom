@@ -56,7 +56,7 @@ namespace CSGeom.D2 {
                         if (vert.x < _bounds.ll.x) _bounds.ll.x = vert.x;
                         if (vert.y < _bounds.ll.y) _bounds.ll.y = vert.y;
                         if (vert.x > _bounds.ur.x) _bounds.ur.x = vert.x;
-                        if (vert.y > _bounds.ur.y) _bounds.ur.y = vert.x;
+                        if (vert.y > _bounds.ur.y) _bounds.ur.y = vert.y;
                     }
                     _bounds_needsUpdate = false;
                 }
@@ -127,7 +127,7 @@ namespace CSGeom.D2 {
 
         public bool IsInsideOther(LineLoop other) {
             if (Count == 0) throw new Exception("Not sure what to do here, should an empty LineLoop always be inside or outside?");
-            return this[0].IsInside(other) && IntersectsOther(other);
+            return this[0].IsInside(other) && !IntersectsOther(other);
         }
         public bool IsPointInside(gvec2 point) {
             if (point.IsInside(Bounds)) {

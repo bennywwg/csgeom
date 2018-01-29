@@ -146,6 +146,7 @@ namespace csgeom_test {
         }
 
         public override void DoMouseDown(MouseButtonEventArgs bu) {
+            Console.WriteLine("abc");
             if (Root.Hovered == Root) {
                 if (bu.Button == MouseButton.Left) {
                     Dragging = true;
@@ -199,7 +200,7 @@ namespace csgeom_test {
             other.verts.Add(new gvec2(0.5, -0.5));
             other.verts.Add(new gvec2(-0.5, 0.5));
             other.verts.Transform(dmat4.Translate(0.5f, 0.5f, 0f));
-
+            
 
 
             ClearButton = new HUDRect("Clear", this) {
