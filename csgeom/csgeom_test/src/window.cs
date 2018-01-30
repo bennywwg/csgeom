@@ -72,7 +72,7 @@ namespace csgeom_test {
         public ivec2 Size => new ivec2(win.ClientRectangle.Width, win.ClientRectangle.Height);
 
         public Window(int width, int height, string title) {
-            win = new NativeWindow(width, height, title, GameWindowFlags.FixedWindow, GraphicsMode.Default, DisplayDevice.Default);
+            win = new NativeWindow(width, height, title, GameWindowFlags.FixedWindow, GraphicsMode.Default, DisplayDevice.GetDisplay(DisplayIndex.Third));
             ctx = new GraphicsContext(new GraphicsMode(32, 24, 0, 8), win.WindowInfo, 3, 3, GraphicsContextFlags.Default);
 
             ctx.MakeCurrent(win.WindowInfo);
