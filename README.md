@@ -4,7 +4,7 @@ Project Status: Preliminary Design Stage
 
 ---
 
-Warning! This project is very incomplete and buggy. Additionally, since the project is incomplete, there is an additional visual studio project "csgeom_test" included in this repo, which contains has a GUI that I use to test the actual library. This project will not be included in the final version of csgeom, and is also pretty buggy right now.
+Warning! This project is very incomplete and buggy. Additionally, since the project is incomplete, there is an additional visual studio project "csgeom_test" included in this repo, which has a GUI that I use to test the actual library. This project will not be included in the final version of csgeom, and is also pretty buggy right now.
 
 ---
 
