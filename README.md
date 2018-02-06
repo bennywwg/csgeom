@@ -4,60 +4,22 @@ Project Status: Preliminary Design Stage
 
 ---
 
-### The end goal of this project is to produce a computational geometry library written in C#.
+Warning! This project is very incomplete and buggy. Additionally, since the project is incomplete, there is an additional visual studio project "csgeom_test" included in this repo, which contains has a GUI that I use to test the actual library. This project will not be included in the final version of csgeom, and is also pretty buggy right now.
 
-### The high level goals of this project ARE:
-  * Never produce degenerate output from non-degenerate input
-  * Be fast enough for real time applications
-  
-### The high level goals of this project are NOT:
-  * Accept degenerate input
-  * Use optimal-time-complexity algorithms
-  
 ---
 
-### There are a number of problems this library aims to solve:
+This is a computational geometry library written in C#, csgeom! This library will be able to perform nontrivial geometry operations on polygons and polyhedrons.
 
-### In 2D:
+* Reduce polygons to sets of convex polygons
+* Triangulate polygons
+* Find area of polygons
+* Find center of area of polygons
+* Boolan operations on polygons, ie constructive solid geometry
 
-  * Describe a simple polygon with holes (referred to as a polygon) (Mostly Done!)
-  * Triangulate a polygon (Mostly Done!)
-  * Find area of a polygon (Mostly Done!)
-  * Find center of area of a polygon (Mostly Done!)
-  * Find area moment of inertia of a polygon about a point (Not Started)
-  * Perform boolean operations on polygons (Partially done)
-  * Transform a polygon with matrix multiplication (translate, scale, shear, rotate) (Mostly Done!)
-  
-### In 3D:
+* Reduce polyhedrons to sets of convex polyhedrons
+* Reduce polyhedrons to tetrahedrons
+* Volume of polyhedrons
+* Center of volume of polyhedrons
+* Boolean operations on polyhedrons
 
-  * Describe a hyperplane
-  * Find the intersection of a line and a hyperplane
-  * Project points onto hyperplane
-  * Describe a manifold solid with polygon faces (referred to as a solid)
-  * Tetrahedronate a solid
-  * Find the volume of a solid
-  * Find the center of volume of a solid
-  * Find the moment of inertia of a solid about an axis
-  * Perform boolean operations on solids
-  * Transform a solid with matrix multiplication (translate, scale, shear, rotate)
-  
-### Dynamics:
-
-  * Find the velocity of a point in a rotating coordinate system
-  * Find the acceleration of a point in a rotating coordinate system
-
-### Generic:
-  * Find shortest path between two points inside a polygon or solid
- 
-### Other (less important and easier) problems:
-
-  * Find exact solutions to line integrals of polynomial vector fields over discrete curves (line segment chains)
-  * Find exact solutions to area integrals of polynomial fields over polygons
-  * Find exact solutions to volume integrals of polynomial fields over solids
-  * Find approximate solutions to line, area, and volume integrals of fields over their respective geometry
-  * Find exact solutions to line, area, and volume integrals of discrete fields over their respective geometry
-  
-  
-  
-  
-  
+Coming soon: sample code in this README!
