@@ -1,6 +1,7 @@
 Project Status: Preliminary Design Stage
 
 # csgeom: Computational Geometry in C#
+![csgeom](https://raw.githubusercontent.com/bennywwg/csgeom/master/csgeom/csgeom/logo.png)
 
 ---
 
@@ -15,6 +16,7 @@ This is a computational geometry library written in C#, csgeom! This library wil
 * Find area of polygons
 * Find center of area of polygons
 * Boolan operations on polygons, ie constructive solid geometry
+
 
 * Reduce polyhedrons to sets of convex polyhedrons
 * Reduce polyhedrons to tetrahedrons
