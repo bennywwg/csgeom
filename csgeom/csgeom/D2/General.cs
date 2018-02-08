@@ -44,7 +44,7 @@ namespace CSGeom.D2 {
                 int foundLoopIndex = -1;
                 int foundOtherVertexIndex = -1;
 
-                //we have go into each loop including the main loop at index 0 
+                //we have go into each loop including the main loop at index 0
                 for (int loopIndex = 0; loopIndex < remainingLoops.Count; loopIndex++) {
                     if (loopIndex == 1) continue; //
 
@@ -200,7 +200,7 @@ namespace CSGeom.D2 {
             //preprocessing
             for (int i = -1; i < lhs.holes.Count; i++) {
                 if(i == -1 && (!ir.lhs.ContainsKey(-1)) && !lhs.verts[0].IsInside(rhs)) {
-                    
+
                 }
                 //if(ir.lhs.ContainsKey()
             }
@@ -220,8 +220,8 @@ namespace CSGeom.D2 {
                 IntersectionPair nearestIntersection = null;
                 IntersectionPair lastIntersection = currentLoop.Last();
                 TraversalMode mode = (lastIntersection.lhs.mode == TraversalMode.exiting) ? TraversalMode.lhs : TraversalMode.rhs;
-                //Dictionary<int, int> nextQueue = 
-                
+                //Dictionary<int, int> nextQueue =
+
                 foreach (IntersectionPair info in ir.intersections) {
                     if (info.lhs.index == lastIntersection.lhs.index && info.rhs.index == lastIntersection.rhs.index && info != lastIntersection) {
                         if (mode == TraversalMode.lhs) {
@@ -286,7 +286,7 @@ namespace CSGeom.D2 {
                             loop.Add(opLoop[currentSegment]);
                             if (first) first = false;
                         }
-                        
+
                         if (segMode == TraversalMode.lhs) segMode = TraversalMode.rhs; else segMode = TraversalMode.lhs;
                     }
 
@@ -298,7 +298,7 @@ namespace CSGeom.D2 {
                     currentLoop.Add(nearestIntersection);
                 }
             }
-            
+
             return res;
         }
 
@@ -350,7 +350,7 @@ namespace CSGeom.D2 {
                     n.AccumulateWeaklySimplyPolygons(accumulator);
                 }
             }
-            
+
             public List<PolygonNode> FindHighestNodeEnclosedBy(LineLoop l) {
                 List<PolygonNode> found = new List<PolygonNode>();
                 foreach (PolygonNode n in children) {
@@ -401,7 +401,7 @@ namespace CSGeom.D2 {
                 if(newParent != null) newParent.children.Add(this);
                 parent = newParent;
             }
-            
+
             public PolygonNode(LineLoop loop, PolygonNode parent) {
                 this.loop = loop;
                 this.parent = parent;
@@ -409,7 +409,7 @@ namespace CSGeom.D2 {
             }
         }
 
-        public List<PolygonNode> FindHighestNodeEnclosedBy(LineLoop l) {
+        private List<PolygonNode> FindHighestNodeEnclosedBy(LineLoop l) {
             List<PolygonNode> found = new List<PolygonNode>();
             foreach (PolygonNode n in nodes) {
                 if (n.loop.IsInsideOther(l)) {
@@ -426,7 +426,7 @@ namespace CSGeom.D2 {
                 return null;
             }
         }
-        public PolygonNode FindLowestNodeEnclosing(LineLoop l) {
+        private PolygonNode FindLowestNodeEnclosing(LineLoop l) {
             foreach (PolygonNode n in nodes) {
                 PolygonNode lowest = n.FindLowestNodeEnclosing(l);
                 if (lowest != null) return lowest;

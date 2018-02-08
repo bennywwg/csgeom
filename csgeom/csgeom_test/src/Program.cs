@@ -58,6 +58,9 @@ namespace csgeom_test {
 
             try {
                 textShader = new Shader("../../resources/shaders/text/s.vert", "../../resources/shaders/text/s.frag");
+
+                
+
                 Console.WriteLine("Shader 'text' loaded");
             } catch {
                 Console.WriteLine("Shader 'text' failed to load");
@@ -126,13 +129,13 @@ namespace csgeom_test {
 
             CSGeom.D2.Polygon p = new CSGeom.D2.Polygon();
 
-            p.InsertLoop(new CSGeom.D2.LineLoop(new CSGeom.gvec2[] {
+            p.InsertLoop(new CSGeom.D2.Loop(new CSGeom.gvec2[] {
                 new CSGeom.gvec2(0.0, 0.0),
                 new CSGeom.gvec2(4.0, 0.0),
                 new CSGeom.gvec2(4.0, 4.0),
                 new CSGeom.gvec2(0.0, 4.0),
             }));
-            p.InsertLoop(new CSGeom.D2.LineLoop(new CSGeom.gvec2[] {
+            p.InsertLoop(new CSGeom.D2.Loop(new CSGeom.gvec2[] {
                 new CSGeom.gvec2(1.0, 1.0),
                 new CSGeom.gvec2(1.0, 3.0),
                 new CSGeom.gvec2(3.0, 3.0),

@@ -46,11 +46,14 @@
     <Compile Include="basictypes.cs" />
     <Compile Include="util.cs" />
     <Compile Include="D2\General.cs" />
-    <Compile Include="D2\LineLoop.cs" />
+    <Compile Include="D2\Loop.cs" />
     <Compile Include="D2\BasicTypes.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="D2\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="logo.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

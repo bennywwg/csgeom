@@ -17,7 +17,74 @@ namespace CSGeom.D2 {
         public TriangulationCode code;
     }
 
-    public class LineLoop : DiscreteBooleanSpace {
+    public class Loop : DiscreteBooleanSpace {
+        public class Index {
+            public readonly Loop owner;
+            public readonly int segment;
+            public readonly double param;
+            public double dist => segment + param;
+            public gvec2 pos => owner[segment] + (owner[(segment + 1) % owner.Count] - owner[segment]) * param;
+
+            //generates a list of points between
+            public static List<gvec2> GetSection(Index from, Index to, Direction dir, Interval lhsInterval = Interval.inclusive, Interval rhsInterval = Interval.exclusive) {
+                if (from.owner != to.owner) throw new Exception("Can't get section of two different loops");
+                Loop owner = from.owner;
+                int inc = (dir == Direction.forwards) ? 1 : -1;
+
+                List<gvec2> res = new List<gvec2>();
+                if (lhsInterval == Interval.inclusive) res.Add(from.pos);
+
+                if(from.segment == to.segment) {
+                    if(dir == Direction.forwards) {
+                        if (from.param < to.param) {
+                            //...---0---LHS->-RHS---1---...
+                            //nothing needs to be done
+                        } else if (from.param > to.param) {
+                            //...->-0->-RHS---LHS->-1->-...
+                            int endSegment = to.segment;
+                            int currentSegment = (from.segment + 1) % owner.Count;
+
+                            do {
+                                res.Add(owner[currentSegment]);
+                                currentSegment = (currentSegment + 1) % owner.Count;
+                            } while (currentSegment != endSegment);
+                        }
+                    } else {
+                        if (from.param < to.param) {
+                            //...-<-0-<-LHS---RHS-<-1-<-...
+                            int endSegment = to.segment;
+                            int currentSegment = from.segment;
+
+                            do {
+                                res.Add(owner[currentSegment]);
+                                currentSegment = (currentSegment - 1 + owner.Count) % owner.Count;
+                            } while (currentSegment != endSegment);
+                        } else if (from.param > to.param) {
+                            //...---0---RHS-<-LHS---1---...
+                            //nothing needs to be done
+                        }
+                    }
+                } else {
+                    if(dir == Direction.forwards) {
+                        int currentSegment = from.segment;
+                        do {
+                            currentSegment = (currentSegment + 1) % owner.Count;
+                            res.Add(owner[currentSegment]);
+                        } while (currentSegment != to.segment);
+                    } else {
+                        int currentSegment = from.segment;
+                        do {
+                            res.Add(owner[currentSegment]);
+                            currentSegment = (currentSegment - 1 + owner.Count) % owner.Count;
+                        } while (currentSegment != to.segment);
+                    }
+                }
+
+                if (rhsInterval == Interval.inclusive) res.Add(to.pos);
+                return res;
+            }
+        }
+
         List<gvec2> data;
 
         bool _integralccw_needsUpdate;
@@ -125,7 +192,7 @@ namespace CSGeom.D2 {
         }
         public int Count => data.Count;
 
-        public bool IsInsideOther(LineLoop other) {
+        public bool IsInsideOther(Loop other) {
             if (Count == 0) throw new Exception("Not sure what to do here, should an empty LineLoop always be inside or outside?");
             return this[0].IsInside(other) && !IntersectsOther(other);
         }
@@ -149,7 +216,8 @@ namespace CSGeom.D2 {
             return data.ToList();
         }
 
-        public static LineLoop PseudoSimpleJoin(LineLoop loop0, int index0, LineLoop loop1, int index1, bool reverse0, bool reverse1) {
+        //get rid of this eventually
+        public static Loop PseudoSimpleJoin(Loop loop0, int index0, Loop loop1, int index1, bool reverse0, bool reverse1) {
             List<gvec2> res = new List<gvec2>(loop0.Count + loop1.Count + 2);
             for (int i = reverse0 ? loop0.Count - 1 : 0; reverse0 ? i >= 0 : i <= loop0.Count; i += reverse0 ? -1 : 1) {
                 res.Add(loop0[(i + index0) % loop0.Count]);
@@ -157,10 +225,10 @@ namespace CSGeom.D2 {
             for (int i = reverse1 ? loop1.Count : 0; reverse1 ? i >= 0 : i <= loop1.Count; i += reverse1 ? -1 : 1) {
                 res.Add(loop1[(i + index1) % loop1.Count]);
             }
-            return new LineLoop(res, true, 0, true, aabb.OppositeInfinities());
+            return new Loop(res, true, 0, true, aabb.OppositeInfinities());
         }
 
-        public bool IntersectsOtherBroadphase(LineLoop other) {
+        public bool IntersectsOtherBroadphase(Loop other) {
             return Bounds.Intersects(other.Bounds);
         }
         public bool IntersectsAny(gvec2 p0, gvec2 p1) {
@@ -200,7 +268,7 @@ namespace CSGeom.D2 {
             }
             return false;
         }
-        public bool IntersectsOther(LineLoop other) {
+        public bool IntersectsOther(Loop other) {
             if(IntersectsOtherBroadphase(other)) {
                 for (int i = 0; i < Count; i++) {
                     gvec2 this0 = this[i];
@@ -250,7 +318,7 @@ namespace CSGeom.D2 {
             public double lhsParam;
             public double rhsParam;
         }
-        public static List<LoopLoopIntersection> AllIntersections(LineLoop lhs, LineLoop rhs) {
+        public static List<LoopLoopIntersection> AllIntersections(Loop lhs, Loop rhs) {
             if (lhs.IntersectsOtherBroadphase(rhs)) {
                 List<LoopLoopIntersection> res = new List<LoopLoopIntersection>();
                 for (int i = 0; i < lhs.Count; i++) {
@@ -283,18 +351,18 @@ namespace CSGeom.D2 {
         public void Reverse() {
             data.Reverse();
         }
-        public LineLoop Reversed() {
+        public Loop Reversed() {
             List<gvec2> rev = data.ToList();
             rev.Reverse();
-            return new LineLoop { data = rev };
+            return new Loop { data = rev };
         }
 
-        public LineLoop Clone() {
-            return new LineLoop(data);
+        public Loop Clone() {
+            return new Loop(data);
         }
 
-        public static LineLoop Raw(List<gvec2> rawData) {
-            return new LineLoop(rawData ?? new List<gvec2>(), true, 0, true, aabb.OppositeInfinities());
+        public static Loop Raw(List<gvec2> rawData) {
+            return new Loop(rawData ?? new List<gvec2>(), true, 0, true, aabb.OppositeInfinities());
         }
 
         public TriangulationResult2 Triangulate() {
@@ -314,7 +382,7 @@ namespace CSGeom.D2 {
                 if (this.Count == 3) {
                     return new TriangulationResult2 { data = new Primitive2[] { new Primitive2(this[0], this[1], this[2]) } };
                 } else {
-                    LineLoop _verts = Clone();
+                    Loop _verts = Clone();
                     List<Primitive2> _tris = new List<Primitive2>(_verts.Count - 2);
 
                     int index = 0;
@@ -366,18 +434,18 @@ namespace CSGeom.D2 {
             }
         }
 
-        LineLoop(List<gvec2> data, bool _integralccw_needsUpdate, double _integralccw, bool _bounds_needsUpdate, aabb _bounds) {
+        Loop(List<gvec2> data, bool _integralccw_needsUpdate, double _integralccw, bool _bounds_needsUpdate, aabb _bounds) {
             this.data = data;
             this._integralccw_needsUpdate = _integralccw_needsUpdate;
             this._integralccw = _integralccw;
             this._bounds_needsUpdate = _bounds_needsUpdate;
             this._bounds = _bounds;
         }
-        public LineLoop() : this(new List<gvec2>(), false, 0, false, aabb.OppositeInfinities()) {
+        public Loop() : this(new List<gvec2>(), false, 0, false, aabb.OppositeInfinities()) {
         }
-        public LineLoop(gvec2[] data) : this((data != null) ? new List<gvec2>(data) : new List<gvec2>(), true, 0, true, aabb.OppositeInfinities()) {
+        public Loop(gvec2[] data) : this((data != null) ? new List<gvec2>(data) : new List<gvec2>(), true, 0, true, aabb.OppositeInfinities()) {
         }
-        public LineLoop(IEnumerable<gvec2> data) : this((data != null) ? data.ToList() : new List<gvec2>(), true, 0, true, aabb.OppositeInfinities()) {
+        public Loop(IEnumerable<gvec2> data) : this((data != null) ? data.ToList() : new List<gvec2>(), true, 0, true, aabb.OppositeInfinities()) {
         }
     }
 }

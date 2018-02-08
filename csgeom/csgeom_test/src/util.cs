@@ -150,7 +150,7 @@ namespace csgeom_test {
             }
         }
 
-        public static void Transform(this CSGeom.D2.LineLoop loop, dmat4 transform) {
+        public static void Transform(this CSGeom.D2.Loop loop, dmat4 transform) {
             for (int i = 0; i < loop.Count; i++) {
                 dvec2 tmp = new dvec2(transform * new dvec4(loop[i].x, loop[i].y, 0, 1));
                 loop[i] = new CSGeom.gvec2(tmp.x, tmp.y);

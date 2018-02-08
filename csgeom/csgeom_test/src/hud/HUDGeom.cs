@@ -14,7 +14,7 @@ namespace csgeom_test {
         public Polygon poly;
         public WeaklySimplePolygon other;
 
-        LineLoop currentLoop = new LineLoop();
+        Loop currentLoop = new Loop();
 
         public bool Dragging { get; private set; }
         public vec3 LastCursor { get; private set; }

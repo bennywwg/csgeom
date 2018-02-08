@@ -5,6 +5,16 @@ namespace CSGeom.D2 {
         cw
     }
 
+    public enum Direction {
+        forwards,
+        backwards
+    }
+
+    public enum Interval {
+        exclusive,
+        inclusive
+    }
+
     [Flags]
     public enum TraversalMode {
         entering = 1,
